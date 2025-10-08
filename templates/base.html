@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}文库{% endblock %}</title>
+    
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- API Configuration -->
+    {% include 'partials/api_config.html' %}
+    
+    <!-- 防闪烁主题预加载 - 立即应用深色模式样式 -->
+    <script>
+        (function() {
+            // 立即检查localStorage并应用深色模式
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark-mode');
+                // 立即添加内联样式，确保在CSS加载前就有正确的背景色
+                document.documentElement.style.backgroundColor = '#1a1a1a';
+                document.documentElement.style.color = '#ffffff';
+            }
+        })();
+    </script>
+    
+    <!-- 内联关键CSS - 防止FOUC (Flash of Unstyled Content) -->
+    <style>
+        /* 立即应用的基础样式，防止闪烁 */
+        html {
+            background-color: #f5f5f5;
+            color: #262626;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        html.dark-mode {
+            background-color: #1a1a1a !important;
+            color: #ffffff !important;
+        }
+        
+        body {
+            background-color: inherit;
+            color: inherit;
+            margin: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* 顶部横栏防闪烁样式 */
+        .page-header {
+            background: linear-gradient(135deg, #002bc0, #0056ff) !important;
+            transition: background 0.3s ease;
+        }
+        
+        html.dark-mode .page-header {
+            background: linear-gradient(135deg, #333, #555) !important;
+        }
+        
+        /* 底部导航防闪烁样式 */
+        .bottom-nav {
+            background-color: #ffffff;
+            transition: background-color 0.3s ease;
+        }
+        
+        html.dark-mode .bottom-nav {
+            background-color: #2d2d2d !important;
+        }
+    </style>
+    
+    <!-- 登录检测配置 -->
+    {% block auth_config %}
+    <!-- 默认需要登录检测，子页面可以重写此块来禁用登录检测 -->
+    <script>
+        window.AUTH_REQUIRED = true;
+    </script>
+    {% endblock %}
+    
+    <style>
+        /* CSS Variables - Global Theme */
+        :root {
+            --primary-color: #002bc0;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --danger-color: #ff4d4f;
+            --info-color: #1677ff;
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-primary: #262626;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #eaeaea;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            
+            /* 主题切换过渡时间 */
+            --theme-transition: all 0.3s ease;
+        }
+
+        /* 深色模式CSS变量 */
+        .dark-mode {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #999999;
+            --border-color: #404040;
+            --primary-color: #4a9eff;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Global Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: var(--theme-transition);
+        }
+
+        /* App Container */
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            margin: 0;
+            flex: 1;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            padding-bottom: 80px;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 0.5rem 0;
+            z-index: 1000;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+            transition: var(--theme-transition);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            min-width: 60px;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.25rem;
+            font-size: 1.125rem;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--primary-color);
+        }
+
+        /* 输入框和表单元素过渡动画 */
+        input, textarea, select, button {
+            transition: var(--theme-transition);
+        }
+
+        /* Common Card Styles */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: var(--theme-transition);
+        }
+
+        /* Common Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 43, 192, 0.3);
+        }
+
+        /* Common Form Styles */
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 43, 192, 0.1);
+            background: white;
+        }
+
+        body.dark-mode .form-input {
+            background: var(--card-bg);
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .form-input:focus {
+            background: var(--card-bg);
+        }
+
+        /* Loading and Empty States */
+        .loading-state,
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .loading-icon,
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .loading-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Message Toast */
+        .message-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .message-toast.message-success { background-color: #28a745; }
+        .message-toast.message-error { background-color: #dc3545; }
+        .message-toast.message-warning { background-color: #ffc107; color: #212529; }
+        .message-toast.message-info { background-color: #17a2b8; }
+
+        /* Page-specific styles can be added in blocks */
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1 class="page-title">{% block page_title %}文库{% endblock %}</h1>
+                <div class="header-actions">
+                    {% block header_actions %}
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" id="theme-toggle" title="切换主题">
+                        <i class="fas fa-moon" id="theme-icon"></i>
+                    </button>
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            {% block content %}
+            <!-- Page content goes here -->
+            {% endblock %}
+        </div>
+
+        <!-- Bottom Navigation -->
+        {% block bottom_nav %}
+        <div class="bottom-nav">
+            <a href="/articles/" class="nav-item {% if request.resolver_match.url_name == 'article_list' %}active{% endif %}">
+                <div class="nav-icon">
+                    <i class="fas fa-th-list"></i>
+                </div>
+                <span>文章列表</span>
+            </a>
+            <a href="/articles/categories/" class="nav-item {% if request.resolver_match.url_name == 'categories' %}active{% endif %}">
+                <div class="nav-icon">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <span>文章分类</span>
+            </a>
+            <a href="/articles/records/" class="nav-item {% if request.resolver_match.url_name == 'records' %}active{% endif %}">
+                <div class="nav-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <span>领取记录</span>
+            </a>
+            <a href="/articles/profile/" class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                <div class="nav-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>个人中心</span>
+            </a>
+        </div>
+        {% endblock %}
+    </div>
+
+    <!-- JavaScript Dependencies -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.0/axios.min.js"></script>
+    <!-- Global Theme Script -->
+    <script src="/static/js/global-theme.js"></script>
+    {% block extra_js_libs %}{% endblock %}
+
+    <!-- Common JavaScript Functions -->
+    <script>
+        /**
+         * 全局认证管理器
+         * 负责检查用户登录状态和处理未登录的情况
+         */
+        window.AuthManager = {
+            /**
+             * 检查用户是否已登录
+             * @param {boolean} redirectIfNotAuth - 如果未登录是否自动跳转到登录页面
+             * @returns {Promise<boolean>} 是否已登录
+             */
+            async checkAuth(redirectIfNotAuth = true) {
+                try {
+                    const response = await fetchCall.get(API_CONFIG.USERS.CHECK_AUTH, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.code === 0 && result.data && result.data.is_authenticated) {
+                        return true;
+                    } else {
+                        // 用户未登录
+                        if (redirectIfNotAuth) {
+                            console.log('用户未登录，跳转到登录页面');
+                            this.redirectToLogin();
+                        }
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('检查登录状态失败:', error);
+                    // 网络错误时的处理
+                    if (redirectIfNotAuth) {
+                        this.redirectToLogin();
+                    }
+                    return false;
+                }
+            },
+
+            /**
+             * 跳转到登录页面
+             * @param {string} returnUrl - 登录成功后的返回地址
+             */
+            redirectToLogin(returnUrl = null) {
+                const currentUrl = returnUrl || window.location.pathname + window.location.search;
+                const loginUrl = `/auth/login/?next=${encodeURIComponent(currentUrl)}`;
+                window.location.href = loginUrl;
+            },
+
+            /**
+             * 获取用户基本信息
+             * @returns {Promise<Object|null>} 用户信息对象或null
+             */
+            async getUserInfo() {
+                try {
+                    const response = await fetchCall.get(API_CONFIG.USERS.PROFILE, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.code === 0 && result.data) {
+                        return result.data;
+                    }
+                    return null;
+                } catch (error) {
+                    console.error('获取用户信息失败:', error);
+                    return null;
+                }
+            },
+
+            /**
+             * 退出登录
+             * @returns {Promise<boolean>} 是否成功退出
+             */
+            async logout() {
+                try {
+                    const response = await fetchCall.post(API_CONFIG.USERS.LOGOUT, {}, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.code === 0) {
+                        // 退出成功，跳转到登录页面
+                        this.redirectToLogin();
+                        return true;
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('退出登录失败:', error);
+                    return false;
+                }
+            }
+        };
+
+        /**
+         * 显示消息提示
+         * @param {string} message - 消息内容
+         * @param {string} type - 消息类型 (success, error, warning, info)
+         */
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-toast message-${type}`;
+            messageDiv.textContent = message;
+            
+            document.body.appendChild(messageDiv);
+            
+            // 显示动画
+            setTimeout(() => {
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 自动隐藏
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (document.body.contains(messageDiv)) {
+                        document.body.removeChild(messageDiv);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        /**
+         * 主题切换功能
+         */
+        function toggleTheme() {
+            if (window.globalThemeManager) {
+                const currentMode = window.globalThemeManager.isDarkModeEnabled();
+                window.globalThemeManager.toggleDarkMode(!currentMode);
+                updateThemeIcon();
+            }
+        }
+
+        /**
+         * 更新主题图标
+         */
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon) {
+                const isDark = window.globalThemeManager && window.globalThemeManager.isDarkModeEnabled();
+                themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+                
+                const themeToggle = document.getElementById('theme-toggle');
+                if (themeToggle) {
+                    themeToggle.title = isDark ? '切换浅色模式' : '切换深色模式';
+                }
+            }
+        }
+
+        /**
+         * 格式化日期
+         * @param {string} dateString - 日期字符串
+         * @returns {string} 格式化后的日期
+         */
+        function formatDate(dateString) {
+            if (!dateString) return '未知时间';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+            
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        // 主题已在页面头部预加载，此处不需要重复初始化
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化全局主题管理器
+            if (window.globalThemeManager) {
+                window.globalThemeManager.init();
+                updateThemeIcon();
+            }
+            
+            // 执行登录检测
+            (function() {
+                // 检查是否需要进行登录验证
+                const authRequired = window.AUTH_REQUIRED !== undefined ? window.AUTH_REQUIRED : true;
+                const currentPath = window.location.pathname;
+                const publicPaths = ['/auth/login/', '/auth/register/', '/auth/', '/help/'];
+                const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
+                
+                console.log('登录检测配置:', {
+                    authRequired: authRequired,
+                    currentPath: currentPath,
+                    isPublicPage: isPublicPage,
+                    API_CONFIG: !!window.API_CONFIG,
+                    AuthManager: !!window.AuthManager,
+                    fetchCall: !!window.fetchCall
+                });
+                
+                if (authRequired && !isPublicPage) {
+                    // 对于需要登录的页面，进行登录状态检查
+                    console.log('开始检查登录状态...');
+                    window.AuthManager.checkAuth(true).then(isAuthenticated => {
+                        if (isAuthenticated) {
+                            console.log('用户已登录');
+                            // 可以在这里执行需要登录后才能进行的操作
+                            {% block auth_required_init %}{% endblock %}
+                        }
+                    }).catch(error => {
+                        console.error('登录状态检查失败:', error);
+                    });
+                } else {
+                    console.log('页面不需要登录检测或是公共页面');
+                }
+            })();
+            
+            // 页面特定的初始化
+            {% block page_init %}{% endblock %}
+        });
+    </script>
+
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

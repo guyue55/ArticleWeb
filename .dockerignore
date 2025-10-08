@@ -1,0 +1,118 @@
+# Git相关
+.git
+.gitignore
+
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统相关
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+
+# 数据库文件
+# *.sqlite3
+# db.sqlite3
+
+# 媒体文件
+media/
+
+# 测试相关
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# 文档
+docs/_build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# 临时文件
+*.tmp
+*.temp
+
+# Node.js相关（如果有前端构建）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker相关
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 部署相关
+.vercel/
+
+# 本地配置
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 脚本和文档
+README.md
+*.md
+scripts/
+example/
+tests/
+
+# 静态文件（会在容器中重新收集）
+static/
+
+# 开发工具配置
+pytest.ini
+.flake8
+.pylintrc
+mypy.ini

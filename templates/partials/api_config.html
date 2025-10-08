@@ -1,0 +1,173 @@
+<!-- API配置 - 全局API基础路由配置 -->
+<script>
+    /**
+     * 全局API配置
+     * 统一管理所有API路由的基础路径
+     */
+    window.API_CONFIG = {
+        // API基础路径
+        BASE_URL: '/api/v1',
+        
+        // 文章相关API路径
+        ARTICLES: {
+            BASE: '/articles',
+            LIST: '/articles',
+            DETAIL: (id) => `/articles/${id}`,
+            CLAIM: (id) => `/articles/${id}/claim`,
+            DOWNLOAD: (id) => `/articles/${id}/download/`,
+            RECORDS: '/articles/records',
+            RECORD_DOWNLOAD: (recordId) => `/articles/records/${recordId}/download`,
+            META_CATEGORIES: '/articles/meta/categories',
+            META_CATEGORIES_FILTERED: '/articles/meta/categories/filtered'
+        },
+        
+        // 用户相关API路径
+        USERS: {
+            BASE: '/users',
+            CSRF: '/users/csrf/',
+            REGISTER: '/users/register/',
+            LOGIN: '/users/login/',
+            LOGOUT: '/users/logout/',
+            PROFILE: '/users/profile/',
+            STATS: '/users/stats/',
+            UPDATE: '/users/update/',
+            CHECK_AUTH: '/users/check-auth/'
+        }
+    };
+    
+    /**
+     * 获取完整的API URL
+     * @param {string} endpoint - API端点路径
+     * @returns {string} 完整的API URL
+     */
+    window.getApiUrl = function(endpoint) {
+        // 如果已经是完整路径（包含/api/v1），直接返回
+        if (endpoint.startsWith(window.API_CONFIG.BASE_URL)) {
+            return endpoint;
+        }
+        
+        // 如果是相对路径（以/开头），添加基础路径
+        if (endpoint.startsWith('/')) {
+            return window.API_CONFIG.BASE_URL + endpoint;
+        }
+        
+        // 如果没有斜杠开头，添加基础路径和斜杠
+        return window.API_CONFIG.BASE_URL + '/' + endpoint;
+    };
+    
+    /**
+     * 便捷的API调用方法
+     */
+    window.apiCall = {
+        /**
+         * GET请求
+         * @param {string} endpoint - API端点
+         * @param {Object} config - axios配置
+         * @returns {Promise} axios响应
+         */
+        get: function(endpoint, config = {}) {
+            return axios.get(window.getApiUrl(endpoint), config);
+        },
+        
+        /**
+         * POST请求
+         * @param {string} endpoint - API端点
+         * @param {Object} data - 请求数据
+         * @param {Object} config - axios配置
+         * @returns {Promise} axios响应
+         */
+        post: function(endpoint, data = {}, config = {}) {
+            return axios.post(window.getApiUrl(endpoint), data, config);
+        },
+        
+        /**
+         * PUT请求
+         * @param {string} endpoint - API端点
+         * @param {Object} data - 请求数据
+         * @param {Object} config - axios配置
+         * @returns {Promise} axios响应
+         */
+        put: function(endpoint, data = {}, config = {}) {
+            return axios.put(window.getApiUrl(endpoint), data, config);
+        },
+        
+        /**
+         * DELETE请求
+         * @param {string} endpoint - API端点
+         * @param {Object} config - axios配置
+         * @returns {Promise} axios响应
+         */
+        delete: function(endpoint, config = {}) {
+            return axios.delete(window.getApiUrl(endpoint), config);
+        }
+    };
+
+    /**
+     * 基于fetch的API调用方法（用于不使用axios的页面）
+     */
+    window.fetchCall = {
+        /**
+         * GET请求
+         * @param {string} endpoint - API端点
+         * @param {Object} options - fetch选项
+         * @returns {Promise} fetch响应
+         */
+        get: function(endpoint, options = {}) {
+            return fetch(window.getApiUrl(endpoint), {
+                method: 'GET',
+                ...options
+            });
+        },
+        
+        /**
+         * POST请求
+         * @param {string} endpoint - API端点
+         * @param {Object} data - 请求数据
+         * @param {Object} options - fetch选项
+         * @returns {Promise} fetch响应
+         */
+        post: function(endpoint, data = {}, options = {}) {
+            return fetch(window.getApiUrl(endpoint), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                body: JSON.stringify(data),
+                ...options
+            });
+        },
+        
+        /**
+         * PUT请求
+         * @param {string} endpoint - API端点
+         * @param {Object} data - 请求数据
+         * @param {Object} options - fetch选项
+         * @returns {Promise} fetch响应
+         */
+        put: function(endpoint, data = {}, options = {}) {
+            return fetch(window.getApiUrl(endpoint), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                body: JSON.stringify(data),
+                ...options
+            });
+        },
+        
+        /**
+         * DELETE请求
+         * @param {string} endpoint - API端点
+         * @param {Object} options - fetch选项
+         * @returns {Promise} fetch响应
+         */
+        delete: function(endpoint, options = {}) {
+            return fetch(window.getApiUrl(endpoint), {
+                method: 'DELETE',
+                ...options
+            });
+        }
+    };
+</script>

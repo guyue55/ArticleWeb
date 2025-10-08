@@ -1,0 +1,537 @@
+{% extends 'base.html' %}
+
+{% block title %}文库 - 文章分类{% endblock %}
+
+{% block page_title %}文章分类{% endblock %}
+
+{% block extra_css %}
+        .search-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #f8f9fa;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 43, 192, 0.1);
+        }
+
+        .categories-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .category-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary-color);
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .category-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .category-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            flex-shrink: 0;
+        }
+
+        .category-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .category-count {
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .category-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .category-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .category-action {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .category-action:hover {
+            background: #0056ff;
+            transform: translateY(-1px);
+        }
+
+        /* 分类特定颜色 */
+        .category-workplace .category-icon { background: linear-gradient(135deg, #1890ff, #096dd9); }
+        .category-lifestyle .category-icon { background: linear-gradient(135deg, #52c41a, #389e0d); }
+        .category-livelihood .category-icon { background: linear-gradient(135deg, #722ed1, #531dab); }
+        .category-automotive .category-icon { background: linear-gradient(135deg, #faad14, #d48806); }
+        .category-entertainment .category-icon { background: linear-gradient(135deg, #f759ab, #eb2f96); }
+        .category-education .category-icon { background: linear-gradient(135deg, #13c2c2, #08979c); }
+        .category-love_letters .category-icon { background: linear-gradient(135deg, #ff4d4f, #cf1322); }
+        .category-food .category-icon { background: linear-gradient(135deg, #fa8c16, #d46b08); }
+        .category-travel .category-icon { background: linear-gradient(135deg, #2f54eb, #1d39c4); }
+        .category-trivia .category-icon { background: linear-gradient(135deg, #fadb14, #d4b106); }
+        .category-diary .category-icon { background: linear-gradient(135deg, #a0d911, #7cb305); }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .error-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1rem;
+            color: var(--danger-color);
+            text-align: center;
+        }
+
+        .retry-btn {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .category-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .category-stats {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .stat-item {
+                min-width: 60px;
+            }
+        }
+        
+        /* 深色模式样式 */
+        body.dark-mode .search-input {
+            background: #404040;
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        body.dark-mode .category-card {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .category-card:hover {
+            background: #404040;
+            border-color: var(--primary-color);
+        }
+
+        body.dark-mode .category-title {
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .category-description {
+            color: var(--text-secondary);
+        }
+
+        body.dark-mode .category-stats {
+            background: #404040;
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .stat-value {
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .stat-label {
+            color: var(--text-muted);
+        }
+
+        body.dark-mode .loading {
+            color: var(--text-muted);
+        }
+
+        body.dark-mode .empty-state {
+            color: var(--text-muted);
+        }
+
+        body.dark-mode .error-state {
+            color: var(--danger-color);
+        }
+{% endblock %}
+
+{% block content %}
+    <!-- Search Section -->
+    <div class="search-section">
+        <input type="text" 
+               id="search-input" 
+               class="search-input" 
+               placeholder="搜索分类...">
+    </div>
+
+    <!-- Categories Section -->
+    <div class="categories-section">
+        <h2 class="section-title">
+            <i class="fas fa-th-large"></i>
+            所有分类
+        </h2>
+        <div class="category-grid" id="categories-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>加载分类中...</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    {% include 'partials/api_config.html' %}
+    <script>
+        /**
+         * 分类页面管理器
+         * 负责加载、显示和管理文章分类
+         */
+        class CategoryPageManager {
+            constructor() {
+                this.categories = [];
+                this.filteredCategories = [];
+                this.loading = false;
+                
+                this.init();
+            }
+            
+            /**
+             * 初始化页面
+             */
+            init() {
+                this.loadCategories();
+                this.bindEvents();
+            }
+            
+            /**
+             * 绑定事件监听器
+             */
+            bindEvents() {
+                // 搜索功能
+                const searchInput = document.getElementById('search-input');
+                let searchTimeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        this.searchCategories(e.target.value);
+                    }, 300);
+                });
+            }
+            
+            /**
+             * 加载分类数据
+             */
+            async loadCategories() {
+                if (this.loading) return;
+                
+                this.loading = true;
+                try {
+                    const response = await apiCall.get(API_CONFIG.ARTICLES.META_CATEGORIES);
+                    
+                    if (response.data.code === 0) {
+                        this.categories = response.data.data || [];
+                        this.filteredCategories = [...this.categories];
+                        this.renderCategories();
+                    } else {
+                        throw new Error(response.data.message || '加载分类失败');
+                    }
+                } catch (error) {
+                    console.error('加载分类失败:', error);
+                    this.renderError('加载分类数据失败，请刷新页面重试');
+                } finally {
+                    this.loading = false;
+                }
+            }
+            
+            /**
+             * 渲染分类列表
+             */
+            renderCategories() {
+                const container = document.getElementById('categories-container');
+                
+                if (this.filteredCategories.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <p>暂无分类数据</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const categoryIcons = {
+                    'workplace': 'fas fa-briefcase',
+                    'lifestyle': 'fas fa-home',
+                    'livelihood': 'fas fa-users',
+                    'automotive': 'fas fa-car',
+                    'entertainment': 'fas fa-film',
+                    'education': 'fas fa-graduation-cap',
+                    'love_letters': 'fas fa-heart',
+                    'food': 'fas fa-utensils',
+                    'travel': 'fas fa-plane',
+                    'trivia': 'fas fa-lightbulb',
+                    'diary': 'fas fa-book'
+                };
+                
+                container.innerHTML = this.filteredCategories.map(category => {
+                    const icon = categoryIcons[category.slug] || 'fas fa-folder';
+                    const articleCount = category.count || 0;
+                    
+                    return `
+                        <div class="category-card category-${category.slug}" onclick="selectCategory('${category.slug}', '${category.name}')">
+                            <div class="category-header">
+                                <div class="category-info">
+                                    <div class="category-icon">
+                                        <i class="${icon}"></i>
+                                    </div>
+                                    <h3 class="category-title">${category.name}</h3>
+                                </div>
+                                <div class="category-count">${articleCount} 篇</div>
+                            </div>
+                            <div class="category-description">
+                                ${category.description || category.name + '相关的优质文章内容，涵盖该领域的热门话题和实用信息。'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            /**
+             * 渲染错误状态
+             */ 
+            renderError(message) {
+                const container = document.getElementById('categories-container');
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <p>${message}</p>
+                        <button class="retry-btn" onclick="location.reload()">重试</button>
+                    </div>
+                `;
+            }
+            
+            /**
+             * 搜索分类
+             */
+            searchCategories(keyword) {
+                if (!keyword.trim()) {
+                    this.filteredCategories = [...this.categories];
+                } else {
+                    const searchTerm = keyword.toLowerCase();
+                    this.filteredCategories = this.categories.filter(category => 
+                        category.name.toLowerCase().includes(searchTerm) ||
+                        (category.description && category.description.toLowerCase().includes(searchTerm)) ||
+                        category.slug.toLowerCase().includes(searchTerm)
+                    );
+                }
+                this.renderCategories();
+            }
+            
+            /**
+             * 格式化数字显示
+             */
+            formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                }
+                if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toString();
+            }
+        }
+        
+        /**
+         * 选择分类，跳转到文章列表页面
+         */
+        function selectCategory(categorySlug, categoryName) {
+            // 跳转到文章列表页面，并传递分类参数
+            window.location.href = `/articles/?category=${categorySlug}`;
+        }
+        
+        // 全局变量
+        let categoryManager;
+        
+        // 初始化分类管理器
+        document.addEventListener('DOMContentLoaded', function() {
+            categoryManager = new CategoryPageManager();
+        });
+    </script>
+{% endblock %}

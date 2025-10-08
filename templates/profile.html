@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文库 - 个人中心</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/static/js/global-theme.js"></script>
+    <style>
+        :root {
+            --primary-color: #002bc0;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --danger-color: #ff4d4f;
+            --info-color: #1677ff;
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-primary: #262626;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #eaeaea;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin: 0;
+            flex: 1;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            padding-bottom: 80px;
+        }
+
+        .profile-card {
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+        }
+
+        .profile-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-account {
+            font-size: 0.875rem;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .menu-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: background-color 0.3s ease;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item:hover {
+            background-color: #f8f9fa;
+            color: var(--text-primary);
+        }
+
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.125rem;
+            color: white;
+        }
+
+        .menu-icon.primary { background: var(--primary-color); }
+        .menu-icon.success { background: var(--success-color); }
+        .menu-icon.warning { background: var(--warning-color); }
+        .menu-icon.danger { background: var(--danger-color); }
+        .menu-icon.info { background: var(--info-color); }
+
+        .menu-content {
+            flex: 1;
+        }
+
+        .menu-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .menu-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .menu-arrow {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .menu-badge {
+            background: var(--danger-color);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+
+        /* 功能开发中的提示样式 */
+        .menu-item.developing {
+            opacity: 0.7;
+        }
+
+        .menu-item.developing .menu-subtitle::after {
+            content: " (开发中)";
+            color: var(--warning-color);
+            font-size: 0.75rem;
+        }
+
+        /* 头像上传样式 */
+        .avatar-upload {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 24px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: white;
+            cursor: pointer;
+            border: 2px solid white;
+            transition: background-color 0.3s ease;
+        }
+
+        .avatar-upload:hover {
+            background: #0056ff;
+        }
+
+        .profile-avatar {
+            position: relative;
+        }
+
+        /* 统计数据动画效果 */
+        .stat-value {
+            transition: transform 0.3s ease;
+        }
+
+        .stat-item:hover .stat-value {
+            transform: scale(1.1);
+        }
+
+        /* 菜单项悬停效果优化 */
+        .menu-item:hover .menu-icon {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+
+        /* 响应式优化 */
+        @media (max-width: 480px) {
+            .profile-stats {
+                gap: 0.5rem;
+            }
+            
+            .stat-value {
+                font-size: 1.25rem;
+            }
+            
+            .menu-item {
+                padding: 0.875rem;
+            }
+            
+            .menu-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-around;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--success-color);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 1.25rem;
+        }
+
+
+
+        /* 设置模态框样式 */
+        .setting-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .setting-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
+
+        .btn-setting {
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-setting:hover {
+            background: #0056ff;
+        }
+
+        .setting-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .about-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* 动画样式 */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* 深色模式样式 */
+        body.dark-mode {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-muted: #888888;
+            --border-color: #404040;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .page-header {
+            background: linear-gradient(135deg, #333, #555);
+        }
+
+        body.dark-mode .profile-card {
+            background: linear-gradient(135deg, #333, #555);
+        }
+
+        body.dark-mode .menu-section {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .menu-item {
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .menu-item:hover {
+            background-color: #404040;
+        }
+
+        body.dark-mode .bottom-nav {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        /* 深色模式下的设置弹窗样式 */
+        body.dark-mode .setting-title {
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .setting-item {
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .setting-label {
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .setting-desc {
+            color: var(--text-muted);
+        }
+
+        body.dark-mode .about-info {
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 0.75rem 0.75rem 80px 0.75rem;
+            }
+            
+            .profile-card {
+                padding: 1.5rem;
+            }
+        }
+
+        /* 主题切换按钮样式 */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <!-- <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()">
+        <i id="theme-icon" class="fas fa-moon"></i>
+    </button> -->
+    
+    <div class="app-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <button class="btn btn-link text-white p-0" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="page-title">个人中心</h1>
+                <button class="btn btn-link text-white p-0" onclick="showSettings()">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Profile Card -->
+            <div class="profile-card">
+                <div class="profile-avatar">
+                    <img src="" alt="用户头像" id="userAvatar" style="display: none;">
+                    <i class="fas fa-user" id="defaultAvatar"></i>
+                    <div class="avatar-upload">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                </div>
+                <div class="profile-info">
+                    <div class="profile-name" id="userName">加载中...</div>
+                    <div class="profile-account" id="userAccount">账号：加载中...</div>
+                    <div class="profile-meta">
+                        <span class="meta-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="joinDate">加入时间：加载中...</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="claimedCount">0</div>
+                        <div class="stat-label">已领取</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="downloadCount">0</div>
+                        <div class="stat-label">已下载</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实用工具 -->
+            <div class="menu-section">
+                <a href="#" class="menu-item" onclick="showFormatTool(event)">
+                    <div class="menu-icon success">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <div class="menu-content">
+                        <div class="menu-title">排版工具</div>
+                        <div class="menu-subtitle">文章排版和格式化工具</div>
+                    </div>
+                    <div class="menu-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 我的内容 -->
+            <div class="menu-section">
+                <a href="/articles/records/" class="menu-item">
+                    <div class="menu-icon info">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <div class="menu-content">
+                        <div class="menu-title">领取记录</div>
+                        <div class="menu-subtitle">查看文章领取历史</div>
+                    </div>
+                    <div class="menu-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 帮助与反馈 -->
+            <div class="menu-section">
+                <a href="#" class="menu-item" onclick="showHelp(event)">
+                    <div class="menu-icon success">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="menu-content">
+                        <div class="menu-title">帮助中心</div>
+                        <div class="menu-subtitle">使用指南和常见问题</div>
+                    </div>
+                    <div class="menu-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+                <a href="#" class="menu-item" onclick="showFeedback(event)">
+                    <div class="menu-icon primary">
+                        <i class="fas fa-comment-dots"></i>
+                    </div>
+                    <div class="menu-content">
+                        <div class="menu-title">意见反馈</div>
+                        <div class="menu-subtitle">提交建议和问题反馈</div>
+                    </div>
+                    <div class="menu-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 退出登录 -->
+            <div class="menu-section">
+                <a href="#" class="menu-item" onclick="handleLogout(event)">
+                    <div class="menu-icon danger">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <div class="menu-content">
+                        <div class="menu-title">退出登录</div>
+                        <div class="menu-subtitle">安全退出当前账号</div>
+                    </div>
+                    <div class="menu-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <a href="/articles/" class="nav-item active">
+                <div class="nav-icon">
+                    <i class="fas fa-th-list"></i>
+                </div>
+                <span>文章列表</span>
+            </a>
+            <a href="/articles/categories/" class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <span>文章分类</span>
+            </a>
+            <a href="/articles/records/" class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <span>领取记录</span>
+            </a>
+            <a href="/articles/profile/" class="nav-item active">
+                <div class="nav-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>个人中心</span>
+            </a>
+        </div>
+    </div>
+
+    {% include 'partials/api_config.html' %}
+    <script>
+        /**
+         * 返回上一页
+         */
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/articles/';
+            }
+        }
+
+        /**
+         * 显示排版工具
+         */
+        function showFormatTool(event) {
+            event.preventDefault();
+            window.location.href = '/articles/format-tool/';
+        }
+
+        /**
+         * 显示帮助中心
+         */
+        function showHelp(event) {
+            event.preventDefault();
+            window.location.href = '/articles/help/';
+        }
+
+        /**
+         * 显示意见反馈页面
+         */
+        function showFeedback(event) {
+            event.preventDefault();
+            window.location.href = '/articles/feedback/';
+        }
+
+        /**
+         * 显示设置页面
+         */
+        function showSettings() {
+            // 获取当前设置状态
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            const autoRefresh = localStorage.getItem('autoRefresh') === 'true';
+
+            showModal('系统设置', `
+                <div style="padding: 1rem;">
+                    <div class="setting-group">
+                        <div class="setting-title">显示设置</div>
+                        <div class="setting-item">
+                            <label class="setting-label">
+                                <input type="checkbox" id="darkMode" ${darkMode ? 'checked' : ''} onchange="toggleDarkMode()">
+                                <span>深色模式</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label">
+                                <input type="checkbox" id="autoRefresh" ${autoRefresh ? 'checked' : ''} onchange="toggleAutoRefresh()">
+                                <span>自动刷新</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-title">缓存管理</div>
+                        <div class="setting-item">
+                            <button class="btn-setting" onclick="clearCache()">清理缓存</button>
+                            <span class="setting-desc">清理本地存储的缓存数据</span>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <div class="setting-title">关于</div>
+                        <div class="setting-item">
+                            <div class="about-info">
+                                <div>版本：v1.0.0</div>
+                                <div>更新时间：2025-06-01</div>
+                                <div>开发者：Guyue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        /**
+         * 显示模态框
+         */
+        function showModal(title, content) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: var(--card-bg);
+                color: var(--text-primary);
+                border-radius: 12px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                position: relative;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                border: 1px solid var(--border-color);
+            `;
+
+            modalContent.innerHTML = `
+                <div style="padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <h3 style="margin: 0; color: var(--primary-color);">${title}</h3>
+                    <button onclick="this.closest('.modal').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); transition: color 0.3s ease;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">×</button>
+                </div>
+                <div style="color: var(--text-primary);">${content}</div>
+            `;
+
+            modal.className = 'modal';
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // 点击背景关闭
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        /**
+         * 页面初始化
+         */
+        function initializeSettings() {
+            // 初始化全局主题管理器
+            window.globalThemeManager.init();
+            
+            // 根据当前设置更新复选框状态
+            const darkModeCheckbox = document.getElementById('darkMode');
+            const autoRefreshCheckbox = document.getElementById('autoRefresh');
+            
+            if (darkModeCheckbox) {
+                darkModeCheckbox.checked = window.globalThemeManager.isDarkModeEnabled();
+            }
+            
+            if (autoRefreshCheckbox) {
+                autoRefreshCheckbox.checked = window.globalThemeManager.isAutoRefreshEnabled();
+            }
+        }
+
+        /**
+         * 切换深色模式
+         */
+        function toggleDarkMode() {
+            const isDark = document.getElementById('darkMode').checked;
+            window.globalThemeManager.toggleDarkMode(isDark);
+            
+            // 更新现有弹窗的样式
+            updateExistingModals();
+        }
+
+        /**
+         * 更新现有弹窗的样式
+         */
+        function updateExistingModals() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                const modalContent = modal.querySelector('div > div');
+                if (modalContent) {
+                    // 强制重新应用CSS变量
+                    modalContent.style.background = 'var(--card-bg)';
+                    modalContent.style.color = 'var(--text-primary)';
+                    modalContent.style.border = '1px solid var(--border-color)';
+                    
+                    // 更新内容区域的文本颜色
+                    const contentDiv = modalContent.querySelector('div:last-child');
+                    if (contentDiv) {
+                        contentDiv.style.color = 'var(--text-primary)';
+                    }
+                }
+            });
+        }
+
+        /**
+         * 切换自动刷新
+         */
+        function toggleAutoRefresh() {
+            const isAuto = document.getElementById('autoRefresh').checked;
+            if (isAuto) {
+                window.globalThemeManager.startAutoRefresh();
+            } else {
+                window.globalThemeManager.stopAutoRefresh();
+            }
+        }
+
+        /**
+         * 清理缓存
+         */
+        function clearCache() {
+            if (confirm('确定要清理所有缓存数据吗？这将清除您的本地设置。')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                showToast('缓存清理完成', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        }
+
+        /**
+         * 显示提示消息
+         */
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                z-index: 1001;
+                animation: slideIn 0.3s ease;
+            `;
+
+            switch (type) {
+                case 'success':
+                    toast.style.backgroundColor = 'var(--success-color)';
+                    break;
+                case 'error':
+                    toast.style.backgroundColor = 'var(--danger-color)';
+                    break;
+                default:
+                    toast.style.backgroundColor = 'var(--info-color)';
+            }
+
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        /**
+         * 处理退出登录
+         */
+        async function handleLogout(event) {
+            event.preventDefault();
+            
+            if (!confirm('确定要退出登录吗？')) {
+                return;
+            }
+
+            try {
+                // 获取CSRF token
+                const csrfResponse = await fetchCall.get(API_CONFIG.USERS.CSRF, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                let csrfToken = null;
+                if (csrfResponse.ok) {
+                    const csrfResult = await csrfResponse.json();
+                    if (csrfResult.code === 0) {
+                        csrfToken = csrfResult.data.csrf_token;
+                    }
+                }
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                }
+
+                const response = await fetchCall.post(API_CONFIG.USERS.LOGOUT, {}, {
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.code === 0) {
+                    // 保存主题设置和自动刷新设置
+                    const darkMode = localStorage.getItem('darkMode');
+                    const autoRefresh = localStorage.getItem('autoRefresh');
+                    
+                    // 清理本地存储
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    // 恢复主题设置和自动刷新设置
+                    if (darkMode !== null) {
+                        localStorage.setItem('darkMode', darkMode);
+                    }
+                    if (autoRefresh !== null) {
+                        localStorage.setItem('autoRefresh', autoRefresh);
+                    }
+                    
+                    // 退出成功，跳转到首页
+                    window.location.href = '/';
+                } else {
+                    alert('退出失败：' + (result.message || '请重试'));
+                }
+            } catch (error) {
+                console.error('退出登录失败:', error);
+                alert('网络错误，请重试');
+            }
+        }
+
+        /**
+         * 主题切换功能
+         */
+        function toggleTheme() {
+            if (window.globalThemeManager) {
+                const currentMode = window.globalThemeManager.isDarkModeEnabled();
+                window.globalThemeManager.toggleDarkMode(!currentMode);
+                updateThemeIcon();
+            }
+        }
+
+        /**
+         * 更新主题图标
+         */
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            const isDark = window.globalThemeManager && window.globalThemeManager.isDarkModeEnabled();
+            
+            if (themeIcon) {
+                themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        /**
+         * 个人中心页面管理类
+         */
+        class ProfileManager {
+            constructor() {
+                this.csrfToken = null;
+                this.init();
+            }
+
+            /**
+             * 初始化
+             */
+            async init() {
+                await this.getCSRFToken();
+                await this.loadUserProfile();
+                await this.loadUserStats();
+            }
+
+            /**
+             * 获取CSRF token
+             */
+            async getCSRFToken() {
+                try {
+                    const response = await fetchCall.get(API_CONFIG.USERS.CSRF, {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    const result = await response.json();
+                    if (result.code === 0) {
+                        this.csrfToken = result.data.csrf_token;
+                    }
+                } catch (error) {
+                    console.error('Failed to get CSRF token:', error);
+                }
+            }
+
+            /**
+             * 加载用户资料
+             */
+            async loadUserProfile() {
+                try {
+                    const response = await fetchCall.get(API_CONFIG.USERS.PROFILE, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.code === 0 && result.data) {
+                        this.updateUserProfile(result.data);
+                    } else {
+                        // 用户未登录，跳转到登录页面
+                        console.log('用户未登录，跳转到登录页面');
+                        window.location.href = '/auth/login/';
+                    }
+                } catch (error) {
+                    console.error('加载用户资料失败:', error);
+                    // 网络错误也跳转到登录页面
+                    window.location.href = '/auth/login/';
+                }
+            }
+
+            /**
+             * 更新用户资料显示
+             */
+            updateUserProfile(userData) {
+                // 更新用户名
+                const userName = document.getElementById('userName');
+                if (userName) {
+                    userName.textContent = userData.first_name && userData.last_name 
+                        ? `${userData.first_name}${userData.last_name}` 
+                        : userData.username || '用户';
+                }
+
+                // 更新用户账号
+                const userAccount = document.getElementById('userAccount');
+                if (userAccount) {
+                    userAccount.textContent = `账号：${userData.username || '未知'}`;
+                }
+
+                // 更新加入时间
+                const joinDate = document.getElementById('joinDate');
+                if (joinDate && userData.date_joined) {
+                    const date = new Date(userData.date_joined);
+                    joinDate.textContent = `加入时间：${date.getFullYear()}年${date.getMonth() + 1}月`;
+                }
+
+                // 更新所在地
+                const userLocation = document.getElementById('userLocation');
+                if (userLocation) {
+                    userLocation.textContent = userData.location || '未设置';
+                }
+
+                // 更新头像
+                const userAvatar = document.getElementById('userAvatar');
+                const defaultAvatar = document.getElementById('defaultAvatar');
+                if (userData.avatar && userAvatar && defaultAvatar) {
+                    userAvatar.src = userData.avatar;
+                    userAvatar.style.display = 'block';
+                    defaultAvatar.style.display = 'none';
+                }
+            }
+
+            /**
+             * 加载用户统计数据
+             */
+            async loadUserStats() {
+                try {
+                    const response = await fetchCall.get(API_CONFIG.USERS.STATS, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.code === 0 && result.data) {
+                        this.updateUserStats(result.data);
+                    }
+                } catch (error) {
+                    console.error('加载用户统计数据失败:', error);
+                    // 如果统计数据加载失败，设置默认值
+                    this.updateUserStats({
+                        claimed_count: 0,
+                        download_count: 0,
+                        like_count: 0
+                    });
+                }
+            }
+
+            /**
+             * 更新用户统计数据显示
+             */
+            updateUserStats(statsData) {
+                // 更新已领取数量
+                const claimedCount = document.getElementById('claimedCount');
+                if (claimedCount) {
+                    claimedCount.textContent = statsData.claimed_count || 0;
+                }
+
+                // 更新已下载数量
+                const downloadCount = document.getElementById('downloadCount');
+                if (downloadCount) {
+                    downloadCount.textContent = statsData.download_count || 0;
+                }
+            }
+        }
+
+        // 立即初始化主题，避免页面闪烁
+        (function() {
+            // 检查本地存储的主题设置
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+            }
+        })();
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化全局主题管理器
+            if (window.globalThemeManager) {
+                window.globalThemeManager.init();
+                updateThemeIcon();
+            }
+            
+            new ProfileManager();
+            initializeSettings();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文库 - 文章详情</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/static/js/global-theme.js"></script>
+    {% include 'partials/api_config.html' %}
+    
+    <!-- 防闪烁主题预加载 - 立即应用深色模式样式 -->
+    <script>
+        (function() {
+            // 立即检查localStorage并应用深色模式
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark-mode');
+                // 立即添加内联样式，确保在CSS加载前就有正确的背景色
+                document.documentElement.style.backgroundColor = '#1a1a1a';
+                document.documentElement.style.color = '#ffffff';
+            }
+        })();
+    </script>
+    
+    <!-- 内联关键CSS - 防止FOUC (Flash of Unstyled Content) -->
+    <style>
+        /* 立即应用的基础样式，防止闪烁 */
+        html {
+            background-color: #f5f5f5;
+            color: #262626;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        html.dark-mode {
+            background-color: #1a1a1a !important;
+            color: #ffffff !important;
+        }
+        
+        body {
+            background-color: inherit;
+            color: inherit;
+            margin: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* 顶部横栏防闪烁样式 */
+        .page-header {
+            background: linear-gradient(135deg, #002bc0, #0056ff) !important;
+            transition: background 0.3s ease;
+        }
+        
+        html.dark-mode .page-header {
+             background: linear-gradient(135deg, #333, #555) !important;
+         }
+         
+         /* 主要卡片元素防闪烁样式 */
+         .article-header,
+         .article-tags,
+         .action-section,
+         .content-html,
+         .content-raw {
+             background-color: #ffffff;
+             transition: background-color 0.3s ease, color 0.3s ease;
+         }
+         
+         html.dark-mode .article-header,
+         html.dark-mode .article-tags,
+         html.dark-mode .action-section,
+         html.dark-mode .content-html {
+             background-color: #2d2d2d !important;
+         }
+         
+         html.dark-mode .content-raw {
+             background-color: #333333 !important;
+             color: #e6e6e6 !important;
+         }
+     </style>
+    
+    <style>
+        :root {
+            --primary-color: #002bc0;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --danger-color: #ff4d4f;
+            --info-color: #1677ff;
+            --bg-color: #f5f5f5;
+            --bg-secondary: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-primary: #262626;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #eaeaea;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            
+            /* 主题切换过渡时间 */
+            --theme-transition: all 0.3s ease;
+        }
+
+        /* 深色模式CSS变量 */
+        .dark-mode {
+            --bg-color: #1a1a1a;
+            --bg-secondary: #333333;
+            --card-bg: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #999999;
+            --border-color: #404040;
+            --primary-color: #4a9eff;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: var(--theme-transition);
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin: 0;
+            flex: 1;
+        }
+
+
+
+        .theme-toggle-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            padding-bottom: 80px;
+        }
+
+        .article-header {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            transition: var(--theme-transition);
+        }
+
+        .article-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .article-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge-custom {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .badge-featured {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .badge-claimable {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge-downloadable {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .article-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .article-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .content-text {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        .content-text p {
+            margin-bottom: 1rem;
+        }
+
+        .content-text h1, .content-text h2, .content-text h3 {
+            margin: 1.5rem 0 1rem 0;
+            color: var(--text-primary);
+        }
+
+        .content-text img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* 内容格式切换样式 */
+        .content-format-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .format-tab {
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .format-tab:hover {
+            color: var(--primary-color);
+            background: var(--bg-color);
+        }
+
+        .format-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: var(--bg-color);
+        }
+
+        /* 不同格式内容的样式 */
+        .content-rendered {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+
+        .content-raw {
+            font-family: 'Courier New', Monaco, monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            color: var(--text-primary);
+            transition: var(--theme-transition);
+        }
+
+        /* 深色模式下的代码块样式 */
+        body.dark-mode .content-raw {
+            background: #2d2d2d;
+            color: #e6e6e6;
+            border-color: #404040;
+        }
+
+        .content-html {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            color: var(--text-primary);
+            transition: var(--theme-transition);
+        }
+
+        /* 为HTML内容中的元素添加样式 */
+        .content-html h1,
+        .content-html h2,
+        .content-html h3,
+        .content-html h4,
+        .content-html h5,
+        .content-html h6 {
+            color: var(--text-primary);
+            margin: 1rem 0 0.5rem 0;
+            line-height: 1.4;
+        }
+
+        .content-html h1 {
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .content-html h2 {
+            font-size: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+        }
+
+        .content-html h3 {
+            font-size: 1.3rem;
+        }
+
+        .content-html h4 {
+            font-size: 1.1rem;
+        }
+
+        .content-html p {
+            margin: 0.8rem 0;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        .content-html ul,
+        .content-html ol {
+            margin: 0.8rem 0;
+            padding-left: 2rem;
+        }
+
+        .content-html li {
+            margin: 0.3rem 0;
+            line-height: 1.5;
+        }
+
+        .content-html blockquote {
+            margin: 1rem 0;
+            padding: 0.8rem 1rem;
+            border-left: 4px solid var(--primary-color);
+            background: var(--bg-secondary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .content-html code {
+            background: var(--bg-secondary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', Monaco, monospace;
+            font-size: 0.9rem;
+        }
+
+        .content-html pre {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .content-html pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .content-html table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .content-html th,
+        .content-html td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .content-html th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+        }
+
+        .content-html a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .content-html a:hover {
+            text-decoration: underline;
+        }
+
+        .content-html img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+        }
+
+        .content-html hr {
+            border: none;
+            height: 1px;
+            background: var(--border-color);
+            margin: 1.5rem 0;
+        }
+
+        .content-html strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .content-html em {
+            font-style: italic;
+        }
+
+        /* HTML内容控制样式 */
+        .html-content-wrapper {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .html-content-controls {
+            display: flex;
+            gap: 0;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem;
+        }
+
+        .btn-toggle-render {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: 6px;
+            margin: 0 0.25rem;
+        }
+
+        .btn-toggle-render:first-child {
+            margin-left: 0;
+        }
+
+        .btn-toggle-render:last-child {
+            margin-right: 0;
+        }
+
+        .btn-toggle-render:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-toggle-render.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+        }
+
+        .btn-toggle-render i {
+            font-size: 0.875rem;
+        }
+
+        .btn-copy-html {
+            padding: 0.5rem 1rem;
+            background: var(--success-color);
+            border: 1px solid var(--success-color);
+            color: white;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: 6px;
+            margin: 0 0.25rem;
+        }
+
+        .btn-copy-html:hover {
+            background: #28a745;
+            border-color: #28a745;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-copy-html.copied {
+            background: #20c997;
+            border-color: #20c997;
+        }
+
+        .btn-copy-html i {
+            font-size: 0.875rem;
+        }
+
+        .html-content-display {
+            padding: 0;
+        }
+
+        .html-content-display .content-html,
+        .html-content-display .content-raw {
+            border: none;
+            border-radius: 0;
+            margin: 0;
+        }
+
+        .content-meta {
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .meta-section {
+            margin-bottom: 30px;
+        }
+
+        .meta-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .meta-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .meta-section-title i {
+            color: var(--primary-color);
+        }
+
+        .meta-basic-content {
+            display: grid;
+            gap: 12px;
+        }
+
+        .meta-item-detail {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .meta-item-detail:last-child {
+            margin-bottom: 0;
+        }
+
+        .meta-key {
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .meta-value {
+            color: var(--text-secondary);
+            word-break: break-word;
+            flex: 1;
+        }
+
+        /* JSON显示样式 */
+        .meta-json-content,
+        .meta-raw-content {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .json-display,
+        .raw-display {
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .json-key {
+            color: #9cdcfe;
+            font-weight: 500;
+        }
+
+        /* JSON语法高亮 */
+        .json-display {
+            color: #d4d4d4; /* 默认文本颜色 */
+        }
+
+        .json-display .json-key {
+            color: #9cdcfe; /* 键名颜色 */
+        }
+
+        .json-string {
+            color: #ce9178; /* 字符串值颜色 */
+        }
+
+        .json-number {
+            color: #b5cea8; /* 数字颜色 */
+        }
+
+        .json-boolean {
+            color: #569cd6; /* 布尔值颜色 */
+        }
+
+        .json-null {
+            color: #569cd6; /* null值颜色 */
+        }
+
+        /* 代码高亮样式 */
+        .content-raw .keyword {
+            color: #d73a49;
+            font-weight: bold;
+        }
+
+        .content-raw .string {
+            color: #032f62;
+        }
+
+        .content-raw .comment {
+            color: #6a737d;
+            font-style: italic;
+        }
+
+        /* 深色模式下的代码高亮样式 */
+        body.dark-mode .content-raw .keyword {
+            color: #ff7b72;
+            font-weight: bold;
+        }
+
+        body.dark-mode .content-raw .string {
+            color: #a5d6ff;
+        }
+
+        body.dark-mode .content-raw .comment {
+            color: #8b949e;
+            font-style: italic;
+        }
+
+        /* 复制按钮样式 */
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .content-container {
+            position: relative;
+        }
+
+        .content-container:hover .copy-btn {
+            opacity: 1;
+        }
+
+        .copy-btn:hover {
+            background: #0056ff;
+        }
+
+        .article-tags {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            transition: var(--theme-transition);
+        }
+
+        .tags-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tag-list {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tag-item {
+            padding: 0.375rem 0.75rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .tag-item:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .action-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            transition: var(--theme-transition);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-claim {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-claim:hover {
+            background: #389e0d;
+            color: white;
+        }
+
+        .btn-download {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #0958d9;
+            color: white;
+        }
+
+        /* 下载菜单样式 */
+        .download-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .download-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            min-width: 180px;
+            margin-top: 4px;
+        }
+
+        .download-menu.show {
+            display: block;
+        }
+
+        .download-menu-item {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            text-align: left;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .download-menu-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .download-menu-item:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .download-menu-item:hover {
+            background: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        .download-menu-item i {
+            margin-right: 0.5rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        .btn-download-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-download-toggle .dropdown-arrow {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-download-toggle.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .btn-like {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-like:hover {
+            background: #d9363e;
+            color: white;
+        }
+
+
+
+        .related-articles {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .related-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .related-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .related-item:hover {
+            background: var(--bg-color);
+            color: inherit;
+        }
+
+        .related-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .related-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .related-item-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .related-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .related-error {
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-muted);
+        }
+
+        .btn-retry {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-retry:hover {
+            background: #1677ff;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-around;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--success-color);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 1.25rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+            color: var(--danger-color);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 0.75rem 0.75rem 80px 0.75rem;
+            }
+            
+            .article-header {
+                padding: 1rem;
+            }
+            
+            .article-content {
+                padding: 1rem;
+            }
+            
+            .article-title {
+                font-size: 1.25rem;
+            }
+            
+            .action-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .content-format-tabs {
+                gap: 0.5rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 0.5rem;
+            }
+            
+            .format-tab {
+                min-width: 80px;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+            
+            .format-tab i {
+                font-size: 0.875rem;
+            }
+            
+            .content-container {
+                padding: 0.75rem;
+            }
+            
+            .copy-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+            
+            .content-raw {
+                font-size: 0.75rem;
+                padding: 0.75rem;
+            }
+            
+            .meta-item-detail {
+                flex-direction: column;
+                gap: 6px;
+                padding: 8px;
+            }
+            
+            .meta-key {
+                min-width: auto;
+                font-size: 0.75rem;
+            }
+            
+            .meta-value {
+                font-size: 0.75rem;
+            }
+            
+            .meta-section-title {
+                font-size: 14px;
+            }
+            
+            .json-display,
+            .raw-display {
+                padding: 15px;
+                font-size: 12px;
+            }
+            
+            .content-meta {
+                padding: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .content-format-tabs {
+                gap: 0.25rem;
+            }
+            
+            .format-tab {
+                min-width: 70px;
+                padding: 0.4rem 0.6rem;
+                font-size: 0.7rem;
+            }
+            
+            .format-tab span {
+                display: none;
+            }
+            
+            .format-tab i {
+                font-size: 0.8rem;
+            }
+            
+            .copy-btn {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.7rem;
+            }
+            
+            .content-raw {
+                font-size: 0.7rem;
+                padding: 0.5rem;
+            }
+            
+            .meta-item-detail {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+                padding: 6px;
+            }
+            
+            .meta-key {
+                font-size: 0.7rem;
+                min-width: auto;
+                font-weight: 600;
+            }
+            
+            .meta-value {
+                font-size: 0.7rem;
+            }
+            
+            .meta-section-title {
+                font-size: 12px;
+            }
+            
+            .json-display,
+            .raw-display {
+                padding: 12px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <button class="back-btn" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="page-title">文章详情</h1>
+
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="切换主题">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div id="article-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载文章中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <a href="/articles/" class="nav-item active">
+                <div class="nav-icon">
+                    <i class="fas fa-th-list"></i>
+                </div>
+                <span>文章列表</span>
+            </a>
+            <a href="/articles/categories/" class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <span>文章分类</span>
+            </a>
+            <a href="/articles/records/" class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <span>领取记录</span>
+            </a>
+            <a href="/articles/profile/" class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>个人中心</span>
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.0/axios.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/dompurify/2.4.7/purify.min.js"></script>
+    <script>
+        class ArticleDetailManager {
+            constructor() {
+                this.articleId = this.getArticleIdFromUrl();
+                this.article = null;
+                
+                // 从localStorage恢复状态，如果没有则使用默认值
+                this.currentFormat = this.loadFormatState() || 'rendered'; // rendered, html, markdown, meta
+                this.htmlRenderState = this.loadHtmlRenderState(); // true: 渲染HTML, false: 显示源码
+                
+                this.init();
+            }
+            
+            getArticleIdFromUrl() {
+                const pathParts = window.location.pathname.split('/');
+                return pathParts[pathParts.length - 2]; // Assuming URL like /articles/123/
+            }
+            
+            // 状态管理方法
+            loadFormatState() {
+                try {
+                    return localStorage.getItem(`article_${this.articleId}_format`);
+                } catch (error) {
+                    console.warn('无法从localStorage加载格式状态:', error);
+                    return null;
+                }
+            }
+            
+            saveFormatState(format) {
+                try {
+                    localStorage.setItem(`article_${this.articleId}_format`, format);
+                } catch (error) {
+                    console.warn('无法保存格式状态到localStorage:', error);
+                }
+            }
+            
+            loadHtmlRenderState() {
+                try {
+                    const saved = localStorage.getItem(`article_${this.articleId}_htmlRender`);
+                    return saved !== null ? saved === 'true' : true; // 默认为true
+                } catch (error) {
+                    console.warn('无法从localStorage加载HTML渲染状态:', error);
+                    return true;
+                }
+            }
+            
+            saveHtmlRenderState(state) {
+                try {
+                    localStorage.setItem(`article_${this.articleId}_htmlRender`, state.toString());
+                } catch (error) {
+                    console.warn('无法保存HTML渲染状态到localStorage:', error);
+                }
+            }
+            
+            init() {
+                this.loadArticle();
+            }
+            
+            async loadArticle() {
+                try {
+                    const response = await apiCall.get(API_CONFIG.ARTICLES.DETAIL(this.articleId));
+                    this.article = response.data.data || response.data;
+                    this.renderArticle();
+                    this.loadRelatedArticles();
+                } catch (error) {
+                    console.error('加载文章失败:', error);
+                    this.renderError();
+                }
+            }
+            
+            renderArticle() {
+                const container = document.getElementById('article-container');
+                
+                if (!this.article) {
+                    this.renderError();
+                    return;
+                }
+                
+                const badges = this.renderBadges();
+                const tags = this.renderTags();
+                
+                container.innerHTML = `
+                    <!-- Article Header -->
+                    <div class="article-header">
+                        <h1 class="article-title">${this.article.title}</h1>
+                        
+                        <div class="article-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-user"></i>
+                                <span>${this.article.author?.username || '未知作者'}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-folder"></i>
+                                <span>${this.article.category?.name || '未分类'}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span>${this.formatDate(this.article.create_time)}</span>
+                            </div>
+                        </div>
+                        
+                        ${badges}
+                        
+                        <div class="article-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">${this.article.view_count || 0}</div>
+                                <div class="stat-label">浏览</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${this.article.claim_count || 0}</div>
+                                <div class="stat-label">领取</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${this.article.download_count || 0}</div>
+                                <div class="stat-label">下载</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Article Content -->
+                    <div class="article-content">
+                        <!-- Content Format Tabs -->
+                        <div class="content-format-tabs">
+                            <button class="format-tab ${this.currentFormat === 'rendered' ? 'active' : ''}" 
+                                    onclick="articleManager.switchFormat('rendered')">
+                                <i class="fas fa-eye"></i>
+                                <span>预览</span>
+                            </button>
+                            <button class="format-tab ${this.currentFormat === 'markdown' ? 'active' : ''}" 
+                                    onclick="articleManager.switchFormat('markdown')">
+                                <i class="fab fa-markdown"></i>
+                                <span>Markdown</span>
+                            </button>
+                            <button class="format-tab ${this.currentFormat === 'html' ? 'active' : ''}" 
+                                    onclick="articleManager.switchFormat('html')">
+                                <i class="fas fa-code"></i>
+                                <span>HTML</span>
+                            </button>
+                            <button class="format-tab ${this.currentFormat === 'meta' ? 'active' : ''}" 
+                                    onclick="articleManager.switchFormat('meta')">
+                                <i class="fas fa-info-circle"></i>
+                                <span>元数据</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Content Container -->
+                        <div class="content-container">
+                            <button class="copy-btn" onclick="articleManager.copyContent()">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                            <div id="content-display">
+                                ${this.renderContent()}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${tags}
+                `;
+                
+                // 更新通用复制按钮的显示状态
+                this.updateCopyButtonVisibility();
+            }
+            
+            /**
+             * 切换内容显示格式
+             * @param {string} format - 格式类型：rendered, markdown, html, meta
+             */
+            switchFormat(format) {
+                this.currentFormat = format;
+                
+                // 保存状态到localStorage
+                this.saveFormatState(format);
+                
+                // 更新标签页状态
+                document.querySelectorAll('.format-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector(`.format-tab[onclick*="${format}"]`).classList.add('active');
+                
+                // 更新内容显示
+                document.getElementById('content-display').innerHTML = this.renderContent();
+                
+                // 更新通用复制按钮的显示状态
+                this.updateCopyButtonVisibility();
+            }
+            
+            /**
+             * 根据当前格式渲染内容
+             * @returns {string} 渲染后的HTML内容
+             */
+            renderContent() {
+                const content = this.article.content || '暂无内容';
+                
+                switch (this.currentFormat) {
+                    case 'rendered':
+                        return this.renderRenderedContent(content);
+                    case 'markdown':
+                        return this.renderMarkdownContent(content);
+                    case 'html':
+                        return this.renderHtmlContent(content);
+                    case 'meta':
+                        return this.renderMetaContent();
+                    default:
+                        return this.renderRenderedContent(content);
+                }
+            }
+            
+            /**
+             * 渲染预览内容（Markdown转HTML）
+             */
+            renderRenderedContent(content) {
+                try {
+                    // 如果内容包含HTML标签，直接显示
+                    if (content.includes('<') && content.includes('>')) {
+                        return `<div class="content-rendered">${DOMPurify.sanitize(content)}</div>`;
+                    }
+                    
+                    // 否则作为Markdown处理
+                    const htmlContent = marked.parse(content);
+                    return `<div class="content-rendered">${DOMPurify.sanitize(htmlContent)}</div>`;
+                } catch (error) {
+                    console.error('渲染内容失败:', error);
+                    return `<div class="content-rendered">${this.escapeHtml(content)}</div>`;
+                }
+            }
+            
+            /**
+             * 渲染Markdown原始内容
+             */
+            renderMarkdownContent(content) {
+                return `<div class="content-raw">${this.escapeHtml(content)}</div>`;
+            }
+            
+            /**
+             * 渲染HTML原始内容
+             */
+            renderHtmlContent(content) {
+                // 如果内容不包含HTML标签，尝试从Markdown转换
+                let htmlContent = content;
+                if (!content.includes('<') || !content.includes('>')) {
+                    try {
+                        htmlContent = marked.parse(content);
+                    } catch (error) {
+                        console.error('Markdown转HTML失败:', error);
+                    }
+                }
+                
+                // 默认显示渲染后的HTML内容
+                const isRendered = this.htmlRenderState !== false; // 默认为true
+                
+                return `
+                    <div class="html-content-wrapper">
+                        <div class="html-content-controls">
+                            <button class="btn-toggle-render ${isRendered ? 'active' : ''}" 
+                                    onclick="articleManager.toggleHtmlRender(true)"
+                                    title="显示渲染后的HTML内容">
+                                <i class="fas fa-eye"></i>
+                                渲染
+                            </button>
+                            <button class="btn-toggle-render ${!isRendered ? 'active' : ''}" 
+                                    onclick="articleManager.toggleHtmlRender(false)"
+                                    title="显示原始HTML代码">
+                                <i class="fas fa-code"></i>
+                                源码
+                            </button>
+                            ${isRendered ? `
+                                <button class="btn-copy-html" 
+                                        onclick="articleManager.copyHtmlContent()"
+                                        title="复制渲染后的排版内容">
+                                    <i class="fas fa-copy"></i>
+                                    复制
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="html-content-display">
+                            ${isRendered 
+                                ? `<div class="content-html" id="rendered-html-content">${htmlContent}</div>`
+                                : `<div class="content-raw">${this.escapeHtml(htmlContent)}</div>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+            
+            /**
+             * 切换HTML渲染状态
+             * @param {boolean} shouldRender - 是否渲染HTML
+             */
+            toggleHtmlRender(shouldRender) {
+                this.htmlRenderState = shouldRender;
+                
+                // 保存状态到localStorage
+                this.saveHtmlRenderState(shouldRender);
+                
+                // 如果当前在HTML格式页面，重新渲染内容
+                if (this.currentFormat === 'html') {
+                    document.getElementById('content-display').innerHTML = this.renderContent();
+                }
+                
+                // 更新通用复制按钮的显示状态
+                this.updateCopyButtonVisibility();
+            }
+            
+            /**
+             * 复制渲染后的HTML排版内容
+             * 类似于公众号排版工具的复制功能
+             */
+            async copyHtmlContent() {
+                try {
+                    const renderedElement = document.getElementById('rendered-html-content');
+                    if (!renderedElement) {
+                        throw new Error('未找到渲染内容元素');
+                    }
+                    
+                    // 获取渲染后的HTML内容（包含完整的排版格式）
+                    const htmlContent = renderedElement.innerHTML;
+                    
+                    // 创建一个临时的div来处理HTML内容
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = htmlContent;
+                    
+                    // 优先使用现代的 Clipboard API 复制HTML内容
+                    if (navigator.clipboard && window.isSecureContext) {
+                        // 尝试复制HTML格式的内容
+                        const clipboardItem = new ClipboardItem({
+                            'text/html': new Blob([htmlContent], { type: 'text/html' }),
+                            'text/plain': new Blob([tempDiv.innerText], { type: 'text/plain' })
+                        });
+                        
+                        await navigator.clipboard.write([clipboardItem]);
+                        this.showCopyHtmlSuccess();
+                    } else {
+                        // 降级方案：复制纯文本内容
+                        await this.fallbackCopyText(tempDiv.innerText);
+                        this.showCopyHtmlSuccess();
+                    }
+                } catch (error) {
+                    console.error('复制HTML内容失败:', error);
+                    
+                    // 最后的降级方案：显示HTML代码供用户手动复制
+                    try {
+                        const renderedElement = document.getElementById('rendered-html-content');
+                        const htmlContent = renderedElement ? renderedElement.innerHTML : '';
+                        this.showCopyModal(htmlContent, '复制HTML排版内容');
+                    } catch (fallbackError) {
+                        console.error('获取HTML内容失败:', fallbackError);
+                        this.showCopyModal('', '复制失败');
+                    }
+                }
+            }
+            
+            /**
+             * 显示HTML复制成功提示
+             */
+            showCopyHtmlSuccess() {
+                const copyBtn = document.querySelector('.btn-copy-html');
+                if (!copyBtn) return;
+                
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }
+            
+            /**
+             * 更新通用复制按钮的显示状态
+             * 在HTML标签页的渲染视图下隐藏通用复制按钮，避免重复
+             */
+            updateCopyButtonVisibility() {
+                const copyBtn = document.querySelector('.copy-btn');
+                if (!copyBtn) return;
+                
+                // 在HTML标签页的渲染视图下隐藏通用复制按钮
+                const shouldHide = this.currentFormat === 'html' && this.htmlRenderState !== false;
+                copyBtn.style.display = shouldHide ? 'none' : 'block';
+            }
+            
+            /**
+             * 渲染元数据内容
+             */
+            renderMetaContent() {
+                // 检查是否有完整的元数据内容
+                if (this.article.meta_content && typeof this.article.meta_content === 'object') {
+                    return this.renderFullMetaContent();
+                }
+                
+                // 基本文章信息
+                const basicMetaData = [
+                    { key: 'ID', value: this.article.id },
+                    { key: '标题', value: this.article.title },
+                    { key: '作者', value: this.article.author?.username || '未知' },
+                    { key: '分类', value: this.article.category?.name || '未分类' },
+                    { key: '创建时间', value: this.formatDate(this.article.create_time) },
+                    { key: '更新时间', value: this.formatDate(this.article.update_time) },
+                    { key: '浏览次数', value: this.article.view_count || 0 },
+                    { key: '点赞次数', value: this.article.like_count || 0 },
+                    { key: '领取次数', value: this.article.claim_count || 0 },
+                    { key: '下载次数', value: this.article.download_count || 0 },
+                    { key: '是否推荐', value: this.article.is_featured ? '是' : '否' },
+                    { key: '可否领取', value: this.article.can_claim ? '是' : '否' },
+                    { key: '可否下载', value: this.article.can_download ? '是' : '否' },
+                    { key: '内容长度', value: (this.article.content || '').length + ' 字符' },
+                    { key: '标签', value: this.article.tags?.map(tag => tag.name).join(', ') || '无' }
+                ];
+                
+                const basicMetaItems = basicMetaData.map(item => `
+                    <div class="meta-item-detail">
+                        <div class="meta-key">${item.key}:</div>
+                        <div class="meta-value">${item.value}</div>
+                    </div>
+                `).join('');
+                
+                // 文件元数据信息（如果存在）
+                let fileMetaContent = '';
+                if (this.article.meta_content) {
+                    try {
+                        const metaData = typeof this.article.meta_content === 'string' 
+                            ? JSON.parse(this.article.meta_content) 
+                            : this.article.meta_content;
+                    } catch (error) {
+                        console.error('解析元数据失败:', error);
+                        fileMetaContent = `
+                            <div class="meta-section">
+                                <h4 class="meta-section-title">
+                                    <i class="fas fa-file-code"></i>
+                                    文件元数据
+                                </h4>
+                                <div class="meta-raw-content">
+                                    <pre class="raw-display">${this.escapeHtml(this.article.meta_content)}</pre>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                return `
+                    <div class="content-meta">
+                        <div class="meta-section">
+                            <h4 class="meta-section-title">
+                                <i class="fas fa-info-circle"></i>
+                                基本信息
+                            </h4>
+                            <div class="meta-basic-content">
+                                ${basicMetaItems}
+                            </div>
+                        </div>
+                        ${fileMetaContent}
+                    </div>
+                `;
+            }
+
+            /**
+             * 渲染完整的元数据内容
+             */
+            renderFullMetaContent() {
+                const metaContent = this.article.meta_content;
+                let html = '<div class="content-meta">';
+
+                // 基本信息区域
+                html += `
+                    <div class="meta-section">
+                        <h4 class="meta-section-title">
+                            <i class="fas fa-info-circle"></i>
+                            基本信息
+                        </h4>
+                        <div class="meta-basic-content">
+                            <div class="meta-item-detail">
+                                <div class="meta-key">文章ID:</div>
+                                <div class="meta-value">${metaContent.article_id || this.article.id}</div>
+                            </div>
+                            <div class="meta-item-detail">
+                                <div class="meta-key">标题:</div>
+                                <div class="meta-value">${this.escapeHtml(metaContent.title || this.article.title)}</div>
+                            </div>
+                            <div class="meta-item-detail">
+                                <div class="meta-key">字数统计:</div>
+                                <div class="meta-value">${metaContent.word_count || '未知'}</div>
+                            </div>
+                            <div class="meta-item-detail">
+                                <div class="meta-key">内容哈希:</div>
+                                <div class="meta-value">${metaContent.content_hash || '未知'}</div>
+                            </div>
+                            <div class="meta-item-detail">
+                                <div class="meta-key">生成时间:</div>
+                                <div class="meta-value">${metaContent.generated_at ? new Date(metaContent.generated_at).toLocaleString() : '未知'}</div>
+                            </div>
+                            <div class="meta-item-detail">
+                                <div class="meta-key">文章类型:</div>
+                                <div class="meta-value">${metaContent.article_type || '未知'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 主题信息区域
+                if (metaContent.topic) {
+                    html += `
+                        <div class="meta-section">
+                            <h4 class="meta-section-title">
+                                <i class="fas fa-lightbulb"></i>
+                                主题信息
+                            </h4>
+                            <div class="meta-basic-content">
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">主题标题:</div>
+                                    <div class="meta-value">${this.escapeHtml(metaContent.topic.title || '')}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">主题描述:</div>
+                                    <div class="meta-value">${this.escapeHtml(metaContent.topic.description || '')}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">主题分类:</div>
+                                    <div class="meta-value">${this.escapeHtml(metaContent.topic.category || '')}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">关键词:</div>
+                                    <div class="meta-value">${metaContent.topic.keywords ? metaContent.topic.keywords.join(', ') : '无'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 配置信息区域
+                if (metaContent.metadata && metaContent.metadata.config) {
+                    const config = metaContent.metadata.config;
+                    html += `
+                        <div class="meta-section">
+                            <h4 class="meta-section-title">
+                                <i class="fas fa-cog"></i>
+                                配置信息
+                            </h4>
+                            <div class="meta-basic-content">
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">文章类型:</div>
+                                    <div class="meta-value">${config.article_type || '未知'}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">最小字数:</div>
+                                    <div class="meta-value">${config.min_words || '未设置'}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">格式类型:</div>
+                                    <div class="meta-value">${config.format_type || '未知'}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">写作视角:</div>
+                                    <div class="meta-value">${config.perspective || '未设置'}</div>
+                                </div>
+                                ${config.structure ? `
+                                    <div class="meta-item-detail">
+                                        <div class="meta-key">文章结构:</div>
+                                        <div class="meta-value">${this.formatStructureDisplay(config.structure)}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 模板信息区域
+                if (metaContent.metadata && metaContent.metadata.template) {
+                    const template = metaContent.metadata.template;
+                    html += `
+                        <div class="meta-section">
+                            <h4 class="meta-section-title">
+                                <i class="fas fa-file-alt"></i>
+                                模板信息
+                            </h4>
+                            <div class="meta-basic-content">
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">背景:</div>
+                                    <div class="meta-value">${this.escapeHtml(template.背景 || '')}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">性格特点:</div>
+                                    <div class="meta-value">${this.escapeHtml(template.性格特点 || '')}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">语言风格:</div>
+                                    <div class="meta-value">${this.escapeHtml(template.语言风格 || '')}</div>
+                                </div>
+                                ${template.写作原则 ? `
+                                    <div class="meta-item-detail">
+                                        <div class="meta-key">写作原则:</div>
+                                        <div class="meta-value">${template.写作原则.join(', ')}</div>
+                                    </div>
+                                ` : ''}
+                                ${template.常见主题类型 ? `
+                                    <div class="meta-item-detail">
+                                        <div class="meta-key">常见主题:</div>
+                                        <div class="meta-value">${template.常见主题类型.join(', ')}</div>
+                                    </div>
+                                ` : ''}
+                                ${template.口头禅 ? `
+                                    <div class="meta-item-detail">
+                                        <div class="meta-key">口头禅:</div>
+                                        <div class="meta-value">${template.口头禅.join(', ')}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 文件信息区域
+                if (metaContent.files) {
+                    html += `
+                        <div class="meta-section">
+                            <h4 class="meta-section-title">
+                                <i class="fas fa-file"></i>
+                                文件信息
+                            </h4>
+                            <div class="meta-basic-content">
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">Markdown文件:</div>
+                                    <div class="meta-value">${metaContent.files.markdown || '无'}</div>
+                                </div>
+                                <div class="meta-item-detail">
+                                    <div class="meta-key">HTML文件:</div>
+                                    <div class="meta-value">${metaContent.files.html || '无'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += '</div>';
+                return html;
+            }
+
+            /**
+             * 格式化结构显示
+             */
+            formatStructureDisplay(structure) {
+                if (typeof structure === 'object') {
+                    return Object.entries(structure)
+                        .map(([key, value]) => `${key}: ${value}字`)
+                        .join(', ');
+                }
+                return String(structure);
+            }
+            
+            /**
+             * 复制当前显示的内容
+             */
+            async copyContent() {
+                try {
+                    let textToCopy = '';
+                    
+                    switch (this.currentFormat) {
+                        case 'rendered':
+                            // 复制纯文本内容
+                            const renderedElement = document.querySelector('#content-display .content-rendered');
+                            textToCopy = renderedElement ? renderedElement.innerText : this.article.content;
+                            break;
+                        case 'markdown':
+                            textToCopy = this.article.content || '';
+                            break;
+                        case 'html':
+                            let htmlContent = this.article.content || '';
+                            if (!htmlContent.includes('<') || !htmlContent.includes('>')) {
+                                try {
+                                    htmlContent = marked.parse(htmlContent);
+                                } catch (error) {
+                                    console.error('Markdown转HTML失败:', error);
+                                }
+                            }
+                            textToCopy = htmlContent;
+                            break;
+                        case 'meta':
+                            const metaElement = document.querySelector('#content-display .content-meta');
+                            textToCopy = metaElement ? metaElement.innerText : '';
+                            break;
+                        default:
+                            textToCopy = this.article.content || '';
+                    }
+                    
+                    try {
+                        // 优先使用现代的 Clipboard API
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(textToCopy);
+                            this.showCopySuccess();
+                        } else {
+                            // 降级方案：使用传统的选择和复制方法
+                            await this.fallbackCopyText(textToCopy);
+                            this.showCopySuccess();
+                        }
+                    } catch (error) {
+                        console.error('复制失败:', error);
+                        // 最后的降级方案：显示文本供用户手动复制
+                        this.showCopyModal(textToCopy, '复制内容');
+                    }
+                    
+                } catch (error) {
+                    console.error('获取复制内容失败:', error);
+                    this.showCopyModal(this.article.content || '', '复制内容');
+                }
+            }
+
+            /**
+             * 显示复制成功提示
+             */
+            showCopySuccess() {
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                copyBtn.style.background = 'var(--success-color)';
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.style.background = 'var(--primary-color)';
+                }, 2000);
+            }
+
+            /**
+             * 降级复制方案（适用于不支持Clipboard API的浏览器）
+             */
+            fallbackCopyText(text) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // 创建临时的textarea元素
+                        const textArea = document.createElement('textarea');
+                        textArea.value = text;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-999999px';
+                        textArea.style.top = '-999999px';
+                        document.body.appendChild(textArea);
+                        
+                        // 选择文本
+                        textArea.focus();
+                        textArea.select();
+                        
+                        // 尝试复制
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        
+                        if (successful) {
+                            resolve();
+                        } else {
+                            reject(new Error('execCommand failed'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            /**
+             * 显示复制模态框（最后的降级方案）
+             */
+            showCopyModal(content, title) {
+                // 移除已存在的模态框
+                const existingModal = document.querySelector('.copy-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // 创建模态框
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    padding: 20px;
+                    box-sizing: border-box;
+                `;
+                
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: var(--card-bg, #fff);
+                    border-radius: 12px;
+                    padding: 20px;
+                    max-width: 90%;
+                    max-height: 80%;
+                    overflow: auto;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                `;
+                
+                modalContent.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0; color: var(--text-primary, #333);">${title}</h3>
+                        <button onclick="this.closest('.copy-modal').remove()" style="
+                            background: none;
+                            border: none;
+                            font-size: 20px;
+                            cursor: pointer;
+                            color: var(--text-secondary, #666);
+                            padding: 5px;
+                        ">&times;</button>
+                    </div>
+                    <p style="color: var(--text-secondary, #666); margin-bottom: 15px;">
+                        自动复制失败，请手动选择并复制以下内容：
+                    </p>
+                    <textarea readonly style="
+                        width: 100%;
+                        height: 200px;
+                        border: 1px solid var(--border-color, #ddd);
+                        border-radius: 6px;
+                        padding: 10px;
+                        font-family: monospace;
+                        font-size: 12px;
+                        resize: vertical;
+                        background: var(--bg-color, #f9f9f9);
+                        color: var(--text-primary, #333);
+                        box-sizing: border-box;
+                    ">${content}</textarea>
+                    <div style="margin-top: 15px; text-align: right;">
+                        <button onclick="this.closest('.copy-modal').remove()" style="
+                            background: var(--primary-color, #007bff);
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">关闭</button>
+                    </div>
+                `;
+                
+                modal.className = 'copy-modal';
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                // 自动选择文本
+                const textarea = modalContent.querySelector('textarea');
+                setTimeout(() => {
+                    textarea.select();
+                    textarea.setSelectionRange(0, 99999); // 移动端兼容
+                }, 100);
+                
+                // 点击背景关闭
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            }
+            
+            /**
+             * HTML转义函数
+             */
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            renderBadges() {
+                const badges = [];
+                
+                if (this.article.is_featured) {
+                    badges.push('<div class="badge-custom badge-featured"><i class="fas fa-star"></i>推荐</div>');
+                }
+                
+                if (this.article.can_claim) {
+                    badges.push('<div class="badge-custom badge-claimable"><i class="fas fa-hand-paper"></i>可领取</div>');
+                }
+                
+                if (this.article.can_download) {
+                    badges.push('<div class="badge-custom badge-downloadable"><i class="fas fa-download"></i>可下载</div>');
+                }
+                
+                return badges.length > 0 ? `<div class="article-badges">${badges.join('')}</div>` : '';
+            }
+            
+            renderTags() {
+                if (!this.article.tags || this.article.tags.length === 0) {
+                    return '';
+                }
+                
+                const tagItems = this.article.tags.map(tag => 
+                    `<a href="#" class="tag-item" onclick="searchByTag('${tag.name}')">${tag.name}</a>`
+                ).join('');
+                
+                return `
+                    <div class="article-tags">
+                        <h3 class="tags-title">
+                            <i class="fas fa-tags"></i>
+                            标签
+                        </h3>
+                        <div class="tag-list">
+                            ${tagItems}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            async loadRelatedArticles() {
+                try {
+                    console.log('开始加载相关文章...');
+                    console.log('当前文章:', this.article);
+                    
+                    let relatedArticles = [];
+                    
+                    // 首先尝试获取同分类的文章
+                    if (this.article.category?.id) {
+                        console.log(`尝试获取分类 ${this.article.category.name} (ID: ${this.article.category.id}) 的文章`);
+                        
+                        const categoryResponse = await apiCall.get(API_CONFIG.ARTICLES.LIST, {
+                            params: {
+                                limit: 10,
+                                category_id: this.article.category.id,
+                                status: 2
+                            }
+                        });
+                        
+                        if (categoryResponse.data?.data?.articles) {
+                            const categoryArticles = categoryResponse.data.data.articles
+                                .filter(article => article.id !== this.articleId);
+                            
+                            console.log(`同分类文章数量: ${categoryArticles.length}`);
+                            relatedArticles = categoryArticles.slice(0, 4);
+                        }
+                    }
+                    
+                    // 如果同分类文章不足4篇，补充其他文章
+                    if (relatedArticles.length < 4) {
+                        console.log(`同分类文章不足，当前数量: ${relatedArticles.length}，尝试获取其他文章`);
+                        
+                        const fallbackResponse = await apiCall.get(API_CONFIG.ARTICLES.LIST, {
+                            params: {
+                                limit: 8,
+                                status: 2
+                            }
+                        });
+                        
+                        if (fallbackResponse.data?.data?.articles) {
+                            const fallbackArticles = fallbackResponse.data.data.articles
+                                .filter(article => 
+                                    article.id !== this.articleId && 
+                                    !relatedArticles.some(existing => existing.id === article.id)
+                                );
+                            
+                            console.log(`备选文章数量: ${fallbackArticles.length}`);
+                            
+                            // 补充到4篇
+                            const needed = 4 - relatedArticles.length;
+                            relatedArticles = relatedArticles.concat(fallbackArticles.slice(0, needed));
+                        }
+                    }
+                    
+                    console.log(`最终相关文章数量: ${relatedArticles.length}`);
+                    this.renderRelatedArticles(relatedArticles);
+                    
+                } catch (error) {
+                    console.error('加载相关文章失败:', error);
+                    console.error('错误详情:', error.response?.data || error.message);
+                    
+                    document.getElementById('related-articles-list').innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <p>加载相关文章失败</p>
+                            <small style="color: #666; font-size: 0.8em;">
+                                ${error.response?.status ? `HTTP ${error.response.status}: ${error.response.statusText}` : '网络错误'}
+                            </small>
+                            <button class="btn-action btn-small" onclick="articleDetail.loadRelatedArticles()" style="margin-top: 10px;">
+                                <i class="fas fa-refresh"></i>
+                                重试
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            
+            renderRelatedArticles(articles) {
+                const container = document.getElementById('related-articles-list');
+                
+                if (articles.length === 0) {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">
+                                <i class="fas fa-newspaper"></i>
+                            </div>
+                            <p>暂无相关文章</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = articles.map(article => `
+                    <a href="/articles/${article.id}/" class="related-item">
+                        <div class="related-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="related-info">
+                            <div class="related-item-title">${article.title}</div>
+                            <div class="related-meta">
+                                ${article.category?.name || '未分类'} • ${this.formatDate(article.create_time)}
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            }
+            
+            renderError() {
+                const container = document.getElementById('article-container');
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h3>加载失败</h3>
+                        <p>文章加载失败，请稍后重试</p>
+                        <button class="btn-action btn-claim" onclick="location.reload()">
+                            <i class="fas fa-refresh"></i>
+                            重新加载
+                        </button>
+                    </div>
+                `;
+            }
+            
+            formatDate(dateString) {
+                if (!dateString) return '未知时间';
+                const date = new Date(dateString);
+                const now = new Date();
+                const diff = now - date;
+                
+                if (diff < 60000) return '刚刚';
+                if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+                if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+                
+                return date.toLocaleDateString('zh-CN');
+            }
+        }
+        
+        // Global functions
+        function goBack() {
+            // 检查referrer来源
+            const referrer = document.referrer;
+            
+            // 如果来自文章列表页面，使用history.back()保持状态
+            if (referrer && (referrer.includes('/articles/') || referrer.includes('/articles'))) {
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return;
+                }
+            }
+            
+            // 否则直接跳转到文章列表页面
+            window.location.href = '/articles/';
+        }
+        
+        async function claimArticle(id) {
+            try {
+                const loadingToast = showToast('正在领取文章...', 'info');
+                
+                const response = await apiCall.post(API_CONFIG.ARTICLES.CLAIM(id));
+                
+                hideToast(loadingToast);
+                showToast('文章领取成功！', 'success');
+                
+                // 重新加载文章数据以更新状态
+                if (articleManager) {
+                    articleManager.loadArticle();
+                }
+                
+            } catch (error) {
+                console.error('领取文章失败:', error);
+                
+                if (loadingToast) hideToast(loadingToast);
+                
+                if (error.response && error.response.status === 400) {
+                    showToast('文章已被领取或不可领取', 'warning');
+                } else if (error.response && error.response.status === 401) {
+                    showToast('请先登录', 'error');
+                } else {
+                    showToast('领取失败，请稍后重试', 'error');
+                }
+            }
+        }
+        
+        // 下载菜单相关函数
+        function toggleDownloadMenu() {
+            const menu = document.querySelector('.download-menu');
+            const button = document.querySelector('.btn-download-toggle');
+            
+            menu.classList.toggle('show');
+            button.classList.toggle('active');
+            
+            // 点击其他地方关闭菜单
+            if (menu.classList.contains('show')) {
+                document.addEventListener('click', closeDownloadMenuOnClickOutside);
+            } else {
+                document.removeEventListener('click', closeDownloadMenuOnClickOutside);
+            }
+        }
+        
+        function closeDownloadMenuOnClickOutside(event) {
+            const dropdown = document.querySelector('.download-dropdown');
+            if (!dropdown.contains(event.target)) {
+                const menu = document.querySelector('.download-menu');
+                const button = document.querySelector('.btn-download-toggle');
+                menu.classList.remove('show');
+                button.classList.remove('active');
+                document.removeEventListener('click', closeDownloadMenuOnClickOutside);
+            }
+        }
+        
+        async function downloadArticle(id, fileType = 'md') {
+            try {
+                // 关闭下载菜单
+                const menu = document.querySelector('.download-menu');
+                const button = document.querySelector('.btn-download-toggle');
+                if (menu) {
+                    menu.classList.remove('show');
+                    button.classList.remove('active');
+                }
+                
+                // 显示下载提示
+                const loadingToast = showToast('正在准备下载...', 'info');
+                
+                // 调用下载API
+                const response = await apiCall.post(API_CONFIG.ARTICLES.DOWNLOAD(id), {
+                    file_type: fileType
+                }, {
+                    responseType: 'blob'
+                });
+                
+                // 获取文件名
+                const contentDisposition = response.headers['content-disposition'];
+                let filename = `article_${id}.${fileType}`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                // 创建下载链接
+                const blob = new Blob([response.data]);
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                // 隐藏加载提示，显示成功提示
+                hideToast(loadingToast);
+                showToast('下载成功！', 'success');
+                
+            } catch (error) {
+                console.error('下载失败:', error);
+                
+                // 隐藏加载提示
+                if (loadingToast) hideToast(loadingToast);
+                
+                // 显示错误信息
+                if (error.response && error.response.status === 404) {
+                    showToast('文件不存在或已被删除', 'error');
+                } else if (error.response && error.response.status === 403) {
+                    showToast('没有下载权限', 'error');
+                } else {
+                    showToast('下载失败，请稍后重试', 'error');
+                }
+            }
+        }
+        
+        async function downloadAllFiles(id) {
+            try {
+                // 关闭下载菜单
+                const menu = document.querySelector('.download-menu');
+                const button = document.querySelector('.btn-download-toggle');
+                if (menu) {
+                    menu.classList.remove('show');
+                    button.classList.remove('active');
+                }
+                
+                // 显示下载提示
+                const loadingToast = showToast('正在准备打包下载...', 'info');
+                
+                // 获取文章信息以确定可用文件
+                const articleResponse = await apiCall.get(API_CONFIG.ARTICLES.DETAIL(id));
+                const article = articleResponse.data.data;
+                
+                if (!article.file_info || Object.keys(article.file_info).length === 0) {
+                    hideToast(loadingToast);
+                    showToast('该文章没有可下载的文件', 'warning');
+                    return;
+                }
+                
+                // 依次下载所有可用文件
+                const fileTypes = Object.keys(article.file_info);
+                let downloadCount = 0;
+                
+                for (const fileType of fileTypes) {
+                    try {
+                        await downloadArticle(id, fileType);
+                        downloadCount++;
+                        await new Promise(resolve => setTimeout(resolve, 500)); // 延迟500ms避免并发问题
+                    } catch (error) {
+                        console.error(`下载 ${fileType} 文件失败:`, error);
+                    }
+                }
+                
+                hideToast(loadingToast);
+                if (downloadCount > 0) {
+                    showToast(`成功下载 ${downloadCount} 个文件`, 'success');
+                } else {
+                    showToast('所有文件下载失败', 'error');
+                }
+                
+            } catch (error) {
+                console.error('批量下载失败:', error);
+                if (loadingToast) hideToast(loadingToast);
+                showToast('批量下载失败，请稍后重试', 'error');
+            }
+        }
+        
+        // Toast 提示函数
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#52c41a' : type === 'error' ? '#ff4d4f' : type === 'warning' ? '#faad14' : '#1890ff'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                font-size: 14px;
+                max-width: 300px;
+                word-wrap: break-word;
+                animation: slideInRight 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                hideToast(toast);
+            }, 3000);
+            
+            return toast;
+        }
+        
+        function hideToast(toast) {
+            if (toast && toast.parentNode) {
+                toast.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }
+        
+        // 添加动画样式
+        if (!document.querySelector('#toast-animations')) {
+            const style = document.createElement('style');
+            style.id = 'toast-animations';
+            style.textContent = `
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes slideOutRight {
+                    from {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        function likeArticle(id) {
+            // TODO: Implement like functionality
+            alert('点赞功能待实现');
+        }
+        
+
+        
+        function searchByTag(tagName) {
+            window.location.href = `/articles/?tag=${encodeURIComponent(tagName)}`;
+        }
+        
+        // 主题切换功能
+        function toggleTheme() {
+            if (window.globalThemeManager) {
+                const currentMode = window.globalThemeManager.isDarkModeEnabled();
+                window.globalThemeManager.toggleDarkMode(!currentMode);
+                updateThemeIcon();
+            }
+        }
+        
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            const themeBtn = document.querySelector('.theme-toggle-btn');
+            if (themeIcon && themeBtn) {
+                const isDarkMode = window.globalThemeManager && window.globalThemeManager.isDarkModeEnabled();
+                themeIcon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+                themeBtn.title = isDarkMode ? '切换到浅色模式' : '切换到深色模式';
+            }
+        }
+        
+        // 立即初始化主题，避免页面闪烁
+        (function() {
+            // 检查本地存储的主题设置
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark-mode');
+                document.body.classList.add('dark-mode');
+            }
+        })();
+
+        // Initialize the app
+        let articleManager; // 声明全局变量
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            articleManager = new ArticleDetailManager(); // 赋值给全局变量
+            
+            // 初始化全局主题管理器（现在有防重复机制）
+            if (window.globalThemeManager) {
+                window.globalThemeManager.init();
+                updateThemeIcon();
+            }
+        });
+    </script>
+</body>
+</html>

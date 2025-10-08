@@ -1,0 +1,32 @@
+<!-- 主题切换功能脚本 -->
+<script>
+    /**
+     * 主题切换功能
+     * 统一的主题切换逻辑，确保所有页面行为一致
+     */
+    function toggleTheme() {
+        if (window.globalThemeManager) {
+            const isDark = document.body.classList.contains('dark-mode');
+            window.globalThemeManager.toggleDarkMode(!isDark);
+            updateThemeIcon();
+        }
+    }
+
+    /**
+     * 更新主题图标
+     * 根据当前主题状态更新切换按钮的图标和提示文本
+     */
+    function updateThemeIcon() {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (!themeToggle) return;
+        
+        const icon = themeToggle.querySelector('i');
+        const isDark = document.body.classList.contains('dark-mode');
+        
+        if (icon) {
+            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        themeToggle.title = isDark ? '切换浅色模式' : '切换深色模式';
+    }
+</script>

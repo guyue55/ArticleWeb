@@ -1,0 +1,783 @@
+{% extends "base.html" %}
+
+{% block title %}意见反馈 - 文库{% endblock %}
+
+{% block page_title %}意见反馈{% endblock %}
+
+{% block extra_css %}
+<style>
+        :root {
+            --primary-color: #002bc0;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --danger-color: #ff4d4f;
+            --info-color: #1677ff;
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-primary: #262626;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #eaeaea;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .header-actions {
+            width: 40px;
+        }
+
+        .main-content {
+            flex: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            width: 100%;
+        }
+
+        .feedback-intro {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .intro-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+        }
+
+        .intro-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .intro-description {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .feedback-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .option-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .option-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .option-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary-color), #0056ff);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+        }
+
+        .option-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .option-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .github-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .github-info {
+            background: linear-gradient(135deg, #f8f9ff, #e6f0ff);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .github-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .github-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #24292e;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .github-link:hover {
+            background: #1a1e22;
+            color: white;
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .feedback-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .feedback-type {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .type-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .type-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .type-description {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .bug-report { color: var(--danger-color); }
+        .feature-request { color: var(--info-color); }
+        .improvement { color: var(--warning-color); }
+        .question { color: var(--success-color); }
+
+        .contact-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .contact-method {
+            background: linear-gradient(135deg, #f8f9ff, #e6f0ff);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .contact-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            margin: 0 auto 1rem;
+        }
+
+        .contact-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .contact-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .contact-action:hover {
+            background: #0056ff;
+            color: white;
+            text-decoration: none;
+        }
+
+        .tips-section {
+            background: linear-gradient(135deg, #fff7e6, #fffbe6);
+            border-left: 4px solid var(--warning-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .tips-title {
+            font-weight: 600;
+            color: var(--warning-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tips-list {
+            list-style: none;
+            color: var(--text-secondary);
+        }
+
+        .tips-list li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .tips-list li::before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            .feedback-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .feedback-types {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-content {
+                padding: 1rem 1rem 80px 1rem;
+            }
+        }
+        
+        /* 主题切换按钮样式 */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+            <!-- 反馈介绍 -->
+            <div class="feedback-intro">
+                <div class="intro-icon">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <h2 class="intro-title">你的意见很重要</h2>
+                <p class="intro-description">
+                    我们致力于为你提供更好的服务体验。你的每一条反馈都将帮助我们不断改进和完善产品功能。
+                </p>
+            </div>
+
+            <!-- 反馈方式选择 -->
+            <div class="feedback-options">
+                <a href="#github-section" class="option-card" onclick="scrollToSection('github-section')">
+                    <div class="option-icon">
+                        <i class="fab fa-github"></i>
+                    </div>
+                    <div class="option-title">GitHub Issues</div>
+                    <div class="option-description">
+                        推荐方式，可以跟踪问题处理进度，与开发团队直接交流
+                    </div>
+                </a>
+
+                <a href="#contact-section" class="option-card" onclick="scrollToSection('contact-section')">
+                    <div class="option-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="option-title">邮件反馈</div>
+                    <div class="option-description">
+                        发送详细的问题描述或建议到我们的邮箱
+                    </div>
+                </a>
+            </div>
+
+            <!-- GitHub 反馈区域 -->
+            <div id="github-section" class="github-section">
+                <h3 class="section-title">
+                    <i class="fab fa-github"></i>
+                    GitHub Issues（推荐）
+                </h3>
+                
+                <div class="github-info">
+                    <div class="github-title">为什么选择 GitHub Issues？</div>
+                    <div class="github-description">
+                        GitHub Issues 是我们主要的问题跟踪和功能请求平台。通过 GitHub，你可以：
+                        <br>• 实时跟踪问题处理进度
+                        <br>• 与开发团队和其他用户交流讨论
+                        <br>• 查看类似问题的解决方案
+                        <br>• 参与开源项目的改进过程
+                    </div>
+                    <a href="https://github.com/your-username/ArticleWeb/issues/new" target="_blank" class="github-link">
+                        <i class="fab fa-github"></i>
+                        前往 GitHub 提交反馈
+                    </a>
+                </div>
+
+                <div class="feedback-types">
+                    <div class="feedback-type">
+                        <div class="type-icon bug-report">🐛</div>
+                        <div class="type-title">Bug 报告</div>
+                        <div class="type-description">发现了系统错误或异常行为</div>
+                    </div>
+                    
+                    <div class="feedback-type">
+                        <div class="type-icon feature-request">✨</div>
+                        <div class="type-title">功能请求</div>
+                        <div class="type-description">希望添加新的功能特性</div>
+                    </div>
+                    
+                    <div class="feedback-type">
+                        <div class="type-icon improvement">🚀</div>
+                        <div class="type-title">改进建议</div>
+                        <div class="type-description">对现有功能的优化建议</div>
+                    </div>
+                    
+                    <div class="feedback-type">
+                        <div class="type-icon question">❓</div>
+                        <div class="type-title">使用问题</div>
+                        <div class="type-description">使用过程中遇到的疑问</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他联系方式 -->
+            <div id="contact-section" class="contact-section">
+                <h3 class="section-title">
+                    <i class="fas fa-phone"></i>
+                    其他联系方式
+                </h3>
+                
+                <div class="contact-grid">
+                    <div class="contact-method">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-title">邮件反馈</div>
+                        <div class="contact-info">
+                            发送详细的问题描述或建议到我们的邮箱，我们会在24小时内回复
+                        </div>
+                        <a href="mailto:feedback@example.com?subject=文章系统反馈" class="contact-action">
+                            <i class="fas fa-paper-plane"></i>
+                            发送邮件
+                        </a>
+                    </div>
+                    
+                    <div class="contact-method">
+                        <div class="contact-icon">
+                            <i class="fab fa-qq"></i>
+                        </div>
+                        <div class="contact-title">QQ 群交流</div>
+                        <div class="contact-info">
+                            加入我们的用户交流群，与其他用户和开发者实时交流
+                        </div>
+                        <a href="#" class="contact-action" onclick="showQQGroup()">
+                            <i class="fab fa-qq"></i>
+                            加入群聊
+                        </a>
+                    </div>
+                    
+                    <div class="contact-method">
+                        <div class="contact-icon">
+                            <i class="fab fa-weixin"></i>
+                        </div>
+                        <div class="contact-title">微信公众号</div>
+                        <div class="contact-info">
+                            关注我们的微信公众号，获取最新更新和使用技巧
+                        </div>
+                        <a href="#" class="contact-action" onclick="showWeChatQR()">
+                            <i class="fab fa-weixin"></i>
+                            关注公众号
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 反馈小贴士 -->
+            <div class="tips-section">
+                <div class="tips-title">
+                    <i class="fas fa-lightbulb"></i>
+                    反馈小贴士
+                </div>
+                <ul class="tips-list">
+                    <li>详细描述问题的具体表现和重现步骤</li>
+                    <li>提供你的浏览器版本和操作系统信息</li>
+                    <li>如果可能，请附上截图或错误信息</li>
+                    <li>说明问题发生的频率和影响程度</li>
+                    <li>对于功能建议，请描述具体的使用场景</li>
+                </ul>
+            </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/**
+ * 返回上一页
+ */
+function goBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = '/articles/';
+    }
+}
+
+/**
+ * 滚动到指定区域
+ */
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+}
+
+/**
+ * 显示QQ群信息
+ */
+function showQQGroup() {
+    showModal('QQ群', `
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 1rem;">
+                文库交流群
+            </div>
+            <div style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--text-primary);">
+                群号：123456789
+            </div>
+            <div style="color: var(--text-secondary); margin-bottom: 1rem;">
+                扫描二维码或搜索群号加入
+            </div>
+            <div style="width: 200px; height: 200px; background: #f0f0f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                <i class="fab fa-qq" style="font-size: 3rem; color: #12B7F5;"></i>
+            </div>
+        </div>
+    `);
+}
+
+/**
+ * 显示微信公众号二维码
+ */
+function showWeChatQR() {
+    showModal('微信公众号', `
+        <div style="text-align: center; padding: 1rem;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 1rem;">
+                文库助手
+            </div>
+            <div style="color: var(--text-secondary); margin-bottom: 1rem;">
+                扫描二维码关注公众号
+            </div>
+            <div style="width: 200px; height: 200px; background: #f0f0f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                <i class="fab fa-weixin" style="font-size: 3rem; color: #07C160;"></i>
+            </div>
+            <div style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
+                获取最新功能更新和使用技巧
+            </div>
+        </div>
+    `);
+}
+
+/**
+ * 显示通用模态框
+ */
+function showModal(title, content) {
+    // 创建模态框HTML
+    const modalHTML = `
+        <div class="modal-overlay" onclick="closeModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>${title}</h3>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    ${content}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 添加模态框样式
+    const modalStyles = `
+        <style id="modal-styles">
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 1rem;
+            }
+            
+            .modal-content {
+                background: var(--card-bg);
+                border-radius: 12px;
+                max-width: 500px;
+                width: 100%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            }
+            
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .modal-header h3 {
+                margin: 0;
+                color: var(--text-primary);
+                font-size: 1.25rem;
+            }
+            
+            .modal-close {
+                background: none;
+                border: none;
+                font-size: 1.25rem;
+                color: var(--text-secondary);
+                cursor: pointer;
+                padding: 0.25rem;
+                border-radius: 4px;
+                transition: all 0.3s ease;
+            }
+            
+            .modal-close:hover {
+                background: var(--bg-color);
+                color: var(--text-primary);
+            }
+            
+            .modal-body {
+                padding: 1.5rem;
+            }
+        </style>
+    `;
+    
+    // 移除现有的模态框和样式
+    closeModal();
+    
+    // 添加样式和模态框
+    document.head.insertAdjacentHTML('beforeend', modalStyles);
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // 防止背景滚动
+    document.body.style.overflow = 'hidden';
+}
+
+/**
+ * 关闭模态框
+ */
+function closeModal() {
+    const overlay = document.querySelector('.modal-overlay');
+    const styles = document.getElementById('modal-styles');
+    
+    if (overlay) {
+        overlay.remove();
+    }
+    
+    if (styles) {
+        styles.remove();
+    }
+    
+    // 恢复背景滚动
+    document.body.style.overflow = '';
+}
+</script>
+{% endblock %}
+
+{% block page_init %}
+<script>
+// 添加平滑滚动效果
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// ESC键关闭模态框
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

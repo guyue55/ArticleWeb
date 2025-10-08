@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  web:
+    image: article-web
+    ports:
+      - "9000:9000"
+    environment:
+      - DEBUG=False
+      # 服务器套接字配置
+      - GUNICORN_BIND=0.0.0.0:9000
+      - GUNICORN_BACKLOG=2048
+      - GUNICORN_REUSE_PORT=True
+      # 工作进程配置
+      - GUNICORN_WORKERS=2
+      - GUNICORN_THREADS=2
+      - GUNICORN_WORKER_CLASS=gthread
+      - GUNICORN_WORKER_CONNECTIONS=1000
+      - GUNICORN_MAX_REQUESTS=1000
+      - GUNICORN_MAX_REQUESTS_JITTER=100
+      - GUNICORN_TIMEOUT=30
+      - GUNICORN_KEEPALIVE=2
+      - GUNICORN_GRACEFUL_TIMEOUT=30
+      # 预加载配置
+      - GUNICORN_PRELOAD_APP=True
+      # 日志配置
+      - GUNICORN_ACCESSLOG=logs/access.log
+      - GUNICORN_ERRORLOG=logs/error.log
+      - GUNICORN_LOGLEVEL=info
+      - GUNICORN_CAPTURE_OUTPUT=False
+      - GUNICORN_ENABLE_STDIO_INHERITANCE=False
+      # 性能调优
+      - GUNICORN_LIMIT_REQUEST_LINE=4094
+      - GUNICORN_LIMIT_REQUEST_FIELDS=100
+      - GUNICORN_LIMIT_REQUEST_FIELD_SIZE=8190
+      # 开发相关
+      - GUNICORN_RELOAD=False
+      # 后台运行
+      - GUNICORN_DAEMON=False
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 可选：添加nginx反向代理
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./static:/app/static:ro
+  #   depends_on:
+  #     - web
+  #   restart: unless-stopped
+
+volumes:
+  logs:
+    driver: local
