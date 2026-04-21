@@ -1560,26 +1560,47 @@ if settings.DEBUG:
         return {
             "object": "list",
             "data": [
-                {"id": "gpt-3.5-turbo", "object": "model", "created": 1677610602, "owned_by": "openai"},
-                {"id": "gpt-4", "object": "model", "created": 1687882411, "owned_by": "openai"},
-                {"id": "dall-e-3", "object": "model", "created": 1698785189, "owned_by": "openai"}
-            ]
+                {
+                    "id": "gpt-3.5-turbo",
+                    "object": "model",
+                    "created": 1677610602,
+                    "owned_by": "openai",
+                },
+                {
+                    "id": "gpt-4",
+                    "object": "model",
+                    "created": 1687882411,
+                    "owned_by": "openai",
+                },
+                {
+                    "id": "dall-e-3",
+                    "object": "model",
+                    "created": 1698785189,
+                    "owned_by": "openai",
+                },
+            ],
         }
-
 
     @router.post("/v1/chat/completions", tags=["Mock"], auth=None)
     def mock_chat_completions(request, data: dict = Body(...)):
         """Mock OpenAI chat completions endpoint"""
         messages = data.get("messages", [])
         prompt = messages[-1]["content"] if messages else ""
-        
+
         # Simulate different responses based on prompt
         if "图片" in prompt and "提示词" in prompt:
-            result = "A beautiful scenery of mountains at sunset, cinematic lighting, 8k resolution"
+            result = (
+                "夕阳下的群山风景，金色光线，电影感构图，超清细节，8K，"
+                "氛围感，适合作为文章封面配图"
+            )
         elif "润色" in prompt or "修改" in prompt:
             result = "这是润色后的内容：\n\n今天天气真不错，阳光明媚，微风徐徐，非常适合户外活动。"
         else:
-            result = f"这是一篇关于 {prompt[:20]}... 的 AI 生成文章内容。\n\n随着人工智能技术的发展，创作变得更加高效..."
+            prompt_preview = prompt[:20]
+            result = (
+                f"这是一篇关于 {prompt_preview}... 的 AI 生成文章内容。\n\n"
+                "随着人工智能技术的发展，创作变得更加高效..."
+            )
 
         return {
             "id": "chatcmpl-mock",
@@ -1590,20 +1611,17 @@ if settings.DEBUG:
                 {
                     "index": 0,
                     "message": {"role": "assistant", "content": result},
-                    "finish_reason": "stop"
+                    "finish_reason": "stop",
                 }
-            ]
+            ],
         }
-
 
     @router.post("/v1/images/generations", tags=["Mock"], auth=None)
     def mock_image_generations(request, data: dict = Body(...)):
         """Mock OpenAI image generations endpoint"""
         return {
             "created": int(timezone.now().timestamp()),
-            "data": [
-                {"url": "https://picsum.photos/1024/1024"}
-            ]
+            "data": [{"url": "https://picsum.photos/1024/1024"}],
         }
 
 
@@ -1621,14 +1639,16 @@ def list_generation_history(request, limit: int = 20, offset: int = 0):
     """获取用户的生成记录"""
     queryset = GenerationHistory.objects.filter(
         user_uuid=request.auth.uuid,
-        is_active=True
-    ).order_by('-create_time')
-    
+        is_active=True,
+    ).order_by("-create_time")
+
     total = queryset.count()
     history = queryset[offset:offset+limit]
-    
+
     data = [GenerationHistorySchema.model_validate(h).model_dump() for h in history]
-    return APIResponse.success(data={
-        "items": data,
-        "total": total
-    })
+    return APIResponse.success(
+        data={
+            "items": data,
+            "total": total,
+        }
+    )

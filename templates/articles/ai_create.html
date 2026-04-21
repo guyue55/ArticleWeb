@@ -234,6 +234,50 @@
 <script>
     let vditor;
     let currentTemplate = null;
+    const storageKeys = {
+        providerId: 'aiCreate.providerId',
+        modelName: 'aiCreate.modelName',
+        imgProviderId: 'aiCreate.imgProviderId',
+        imgModelName: 'aiCreate.imgModelName'
+    };
+
+    function readLocalStorage(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function writeLocalStorage(key, value) {
+        try {
+            if (value === null || value === undefined) return;
+            localStorage.setItem(key, String(value));
+        } catch (e) {
+        }
+    }
+
+    function getModelsByProviderId(providerId) {
+        return window.providerModels?.[providerId] || [];
+    }
+
+    function populateDatalist(datalistEl, models, shouldInclude) {
+        datalistEl.innerHTML = '';
+        models.forEach(m => {
+            if (shouldInclude && !shouldInclude(m)) return;
+            const opt = document.createElement('option');
+            opt.value = m.name;
+            opt.textContent = m.display_name;
+            datalistEl.appendChild(opt);
+        });
+    }
+
+    function pickModelName(models, preferredName) {
+        const preferred = (preferredName || '').trim();
+        if (preferred && models.some(m => m.name === preferred)) return preferred;
+        if (models.length > 0) return models[0].name;
+        return '';
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         // 初始化 Vditor
@@ -269,6 +313,10 @@
             const provData = await provRes.json();
             const provSelect = document.getElementById('provider-select');
             const imgProvSelect = document.getElementById('img-provider-select');
+            const modelNameInput = document.getElementById('model-name');
+            const imgModelNameInput = document.getElementById('img-model-name');
+            const modelList = document.getElementById('model-list');
+            const imgModelList = document.getElementById('img-model-list');
             
             // 全局存储供应商模型映射
             window.providerModels = {};
@@ -285,44 +333,58 @@
                 window.providerModels[p.id] = p.models || [];
             });
 
+            const isLikelyImageModel = (m) => {
+                const name = String(m.name || '').toLowerCase();
+                return name.includes('dall-e') || name.includes('sdxl') || name.includes('flux') || name.includes('image');
+            };
+
+            const onProviderChange = () => {
+                const providerId = provSelect.value;
+                writeLocalStorage(storageKeys.providerId, providerId);
+                const models = getModelsByProviderId(providerId);
+                populateDatalist(modelList, models);
+
+                const preferredModel = readLocalStorage(storageKeys.modelName) || modelNameInput.value;
+                const modelName = pickModelName(models, preferredModel);
+                if (modelName) {
+                    modelNameInput.value = modelName;
+                    writeLocalStorage(storageKeys.modelName, modelName);
+                }
+            };
+
+            const onImgProviderChange = () => {
+                const providerId = imgProvSelect.value;
+                writeLocalStorage(storageKeys.imgProviderId, providerId);
+                const models = getModelsByProviderId(providerId).filter(isLikelyImageModel);
+                populateDatalist(imgModelList, models);
+
+                const preferredModel = readLocalStorage(storageKeys.imgModelName) || imgModelNameInput.value;
+                const modelName = pickModelName(models, preferredModel);
+                if (modelName) {
+                    imgModelNameInput.value = modelName;
+                    writeLocalStorage(storageKeys.imgModelName, modelName);
+                }
+            };
+
+            provSelect.addEventListener('change', onProviderChange);
+            imgProvSelect.addEventListener('change', onImgProviderChange);
+            modelNameInput.addEventListener('change', () => writeLocalStorage(storageKeys.modelName, modelNameInput.value.trim()));
+            imgModelNameInput.addEventListener('change', () => writeLocalStorage(storageKeys.imgModelName, imgModelNameInput.value.trim()));
+
             if (provData.data && provData.data.length > 0) {
                 const mock = provData.data.find(p => p.name === 'MockProvider');
-                const selectedProviderId = mock ? mock.id : provData.data[0].id;
-                provSelect.value = selectedProviderId;
-                imgProvSelect.value = selectedProviderId;
-                provSelect.dispatchEvent(new Event('change'));
-                imgProvSelect.dispatchEvent(new Event('change'));
+                const fallbackProviderId = mock ? mock.id : provData.data[0].id;
+
+                const storedProviderId = readLocalStorage(storageKeys.providerId);
+                const initialProviderId = storedProviderId && window.providerModels[storedProviderId] ? storedProviderId : fallbackProviderId;
+                provSelect.value = initialProviderId;
+                onProviderChange();
+
+                const storedImgProviderId = readLocalStorage(storageKeys.imgProviderId);
+                const initialImgProviderId = storedImgProviderId && window.providerModels[storedImgProviderId] ? storedImgProviderId : initialProviderId;
+                imgProvSelect.value = initialImgProviderId;
+                onImgProviderChange();
             }
-
-            // 监听文章供应商变化，联动模型列表
-            provSelect.addEventListener('change', () => {
-                const models = window.providerModels[provSelect.value] || [];
-                const modelList = document.getElementById('model-list');
-                modelList.innerHTML = '';
-                models.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = m.name;
-                    opt.textContent = m.display_name;
-                    modelList.appendChild(opt);
-                });
-            });
-
-            // 监听配图供应商变化，联动图片模型列表
-            imgProvSelect.addEventListener('change', () => {
-                const models = window.providerModels[imgProvSelect.value] || [];
-                const imgModelList = document.getElementById('img-model-list');
-                imgModelList.innerHTML = '';
-                models.forEach(m => {
-                    // 简单判断，包含 dall-e 或 sdxl 或 flux 等关键字的作为建议模型
-                    const name = m.name.toLowerCase();
-                    if (name.includes('dall-e') || name.includes('sdxl') || name.includes('flux') || name.includes('image')) {
-                        const opt = document.createElement('option');
-                        opt.value = m.name;
-                        opt.textContent = m.display_name;
-                        imgModelList.appendChild(opt);
-                    }
-                });
-            });
 
             // 加载模板
             const tempRes = await fetchCall.get('articles/ai/templates');

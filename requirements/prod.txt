@@ -11,7 +11,7 @@ mysqlclient==2.2.4               # MySQL 数据库驱动
 # psycopg2-binary==2.9.9         # PostgreSQL 数据库驱动 (可选)
 
 # 缓存系统
-redis==5.0.1                     # Redis 客户端
+redis==4.6.0                     # Redis 客户端
 django-redis==5.4.0              # Django Redis 缓存后端
 
 # 监控和日志
@@ -21,7 +21,7 @@ structlog==23.2.0                # 结构化日志
 
 # 安全增强
 django-csp==3.7                  # 内容安全策略
-django-security==0.17.0          # 安全中间件集合
+django-security==1.1.6           # 安全中间件集合
 
 # 性能优化
 django-cachalot==2.6.1           # ORM 查询缓存
