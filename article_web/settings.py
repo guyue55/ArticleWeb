@@ -41,6 +41,7 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 DJANGO_APPS = [
+    'simpleui',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -242,3 +243,18 @@ ARTICLE_SCAN_INTERVAL = env('ARTICLE_SCAN_INTERVAL')
 os.makedirs(ARTICLE_GENERATED_DIR, exist_ok=True)
 os.makedirs(ARTICLE_STATIC_DIR, exist_ok=True)
 ENABLE_API_AUTHENTICATION = False
+
+# ==================== SimpleUI 配置 ====================
+# 隐藏右侧SimpleUI广告链接和使用分析
+SIMPLEUI_HOME_INFO = False 
+SIMPLEUI_ANALYSIS = False 
+# 离线模式 (不依赖外部CDN，提升内网速度)
+SIMPLEUI_STATIC_OFFLINE = True
+# 自定义LOGO (如果有)
+# SIMPLEUI_LOGO = '/static/images/logo.png'
+# 默认主题
+SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'
+# 设置Admin站点标题
+SIMPLEUI_HOME_TITLE = '控制台'
+SIMPLEUI_HOME_PAGE = '/articles/admin/ai/'
+SIMPLEUI_HOME_ICON = 'fas fa-desktop'

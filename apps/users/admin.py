@@ -68,8 +68,13 @@ class UserAdmin(BaseUserAdmin):
     # inlines = [UserProfileInline]  # Removed due to UUID-based relationships
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related."""
-        return super().get_queryset(request).select_related('userprofile')
+        """Return the base queryset.
+
+        Note:
+            UserProfile uses `user_uuid` (string) instead of a Django FK/OneToOne
+            relation, so `select_related()` cannot be used here.
+        """
+        return super().get_queryset(request)
     
     def save_model(self, request, obj, form, change):
         """Custom save logic."""
@@ -77,7 +82,7 @@ class UserAdmin(BaseUserAdmin):
         
         # Create UserProfile if it doesn't exist
         if not hasattr(obj, 'userprofile'):
-            UserProfile.objects.create(user=obj)
+            UserProfile.objects.create(user_uuid=obj.uuid)
 
 
 @admin.register(UserProfile)
@@ -89,16 +94,12 @@ class UserProfileAdmin(admin.ModelAdmin):
     )
     list_filter = ('gender', 'education', 'is_active', 'create_time')
     search_fields = (
-        'user__username', 'user__email', 'occupation',
-        'interests', 'social_links'
+        'user_uuid', 'occupation', 'interests', 'social_links'
     )
     ordering = ('-create_time',)
     list_editable = ('is_active',)
     
     fieldsets = (
-        ('关联用户', {
-            'fields': ('user',)
-        }),
         ('个人信息', {
             'fields': ('user_uuid', 'gender', 'occupation', 'education')
         }),
@@ -134,8 +135,13 @@ class UserProfileAdmin(admin.ModelAdmin):
     gender_display.short_description = '性别'
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related."""
-        return super().get_queryset(request).select_related('user')
+        """Return the base queryset.
+
+        Note:
+            This model does not have relational fields, so `select_related()`
+            would raise a FieldError.
+        """
+        return super().get_queryset(request)
 
 
 # Customize admin site
