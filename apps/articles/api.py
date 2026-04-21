@@ -1,11 +1,14 @@
 """Article API endpoints using Django Ninja."""
 
 import logging
-from typing import Optional
+from typing import Optional, List
+
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from ninja import Router
-from ninja.security import HttpBearer
+from django.utils import timezone
+from django.conf import settings
+from ninja import Router, Body
+from ninja.security import HttpBearer, django_auth
 from ninja.errors import HttpError
 
 from apps.common.exceptions import (
@@ -14,12 +17,37 @@ from apps.common.exceptions import (
 from apps.common.responses import APIResponse, ErrorCodes
 from apps.common.serializers import SerializerMixin
 from apps.articles.uuid_serializer import ArticleUUIDSerializer
-from .models import Article, Category, ArticleClaim, ArticleDownload
+from .models import (
+    Article, 
+    Category, 
+    ArticleClaim, 
+    ArticleDownload,
+    AIProvider,
+    AIModel,
+    PromptTemplate,
+    HotTrend,
+    GenerationHistory
+)
 from .schemas import (
     ArticleCreateSchema,
     ArticleUpdateSchema,
-    ArticleResponseSchema
+    ArticleResponseSchema,
+    AIProviderSchema,
+    AIProviderCreateSchema,
+    AIProviderUpdateSchema,
+    AIModelSchema,
+    SystemConfigSchema,
+    SystemConfigCreateSchema,
+    PromptTemplateSchema,
+    PromptTemplateCreateSchema,
+    PromptTemplateUpdateSchema,
+    HotTrendSchema,
+    GenerationHistorySchema,
+    AIArticleGenerateSchema,
+    AIImageGenerateSchema,
 )
+from .services.ai_service import AIService
+from .services.search_service import SearchService
 
 
 logger = logging.getLogger(__name__)
@@ -58,14 +86,14 @@ class AuthBearer(HttpBearer):
         # For now, return a mock user for development
         try:
             from apps.users.models import User
-            # Try to get the first active user, or create one if none exists
-            user = User.objects.filter(is_active=True).first()
+            # Try to get the first active staff user, or create one if none exists
+            user = User.objects.filter(is_active=True, is_staff=True).first()
             if not user:
-                # Create a default user for development
-                user = User.objects.create_user(
-                    username='testuser',
-                    email='test@example.com',
-                    password='testpass123'
+                # Create a default admin user for development
+                user = User.objects.create_superuser(
+                    username='admin',
+                    email='admin@example.com',
+                    password='adminpassword'
                 )
             return user
         except Exception as e:
@@ -96,8 +124,7 @@ class OptionalAuthBearer(HttpBearer):
             return None
 
 
-auth = AuthBearer()
-optional_auth = OptionalAuthBearer()
+auth = django_auth
 
 @router.get("/meta/categories", response=dict)
 def get_meta_categories(request):
@@ -118,6 +145,7 @@ def get_meta_categories(request):
             
             category_data = {
                 'id': category.id,
+                'uuid': category.uuid,
                 'name': category.name,
                 'slug': category.slug,
                 'description': category.description,
@@ -200,6 +228,7 @@ def get_filtered_categories(
             if article_count > 0:
                 category_data = {
                     'id': category.id,
+                'uuid': category.uuid,
                     'name': category.name,
                     'slug': category.slug,
                     'description': category.description,
@@ -680,12 +709,12 @@ def get_article_by_id(request, article_id: int):
         )
 
 
-@router.get("/slug/{slug}", response=ArticleResponseSchema)
+@router.get("/slug/{slug}", response=dict)
 def get_article_by_slug(request, slug: str):
     """Get article by slug and increment view count."""
     try:
         article = get_object_or_404(
-            Article.objects.select_related('author', 'category'),
+            Article.objects.all(),
             slug=slug,
             is_active=True,
             status=2  # Only published articles
@@ -694,12 +723,16 @@ def get_article_by_slug(request, slug: str):
         # Increment view count
         article.increment_view_count()
         
-        return article
+        # Serialize article using UUID serializer
+        from apps.articles.uuid_serializer import ArticleUUIDSerializer
+        serialized_article = ArticleUUIDSerializer.serialize_article_detail(article)
+        
+        return APIResponse.success(data=serialized_article)
     
     except Exception as e:
-        raise NotFoundException(
-            message="文章不存在",
-            details={"slug": slug}
+        return APIResponse.error(
+            code=ErrorCodes.NOT_FOUND,
+            message="文章不存在"
         )
 
 
@@ -709,12 +742,20 @@ def create_article(request, data: ArticleCreateSchema):
     try:
         # Check if slug already exists
         if Article.objects.filter(slug=data.slug).exists():
-            return {
-                "code": 400,
-                "message": "文章别名已存在",
-                "requestId": "",
-                "data": None
-            }
+            return APIResponse.error(
+                code=ErrorCodes.BAD_REQUEST,
+                message="文章别名已存在"
+            )
+
+        category_uuid = data.category_id
+        if str(category_uuid).isdigit():
+            category = Category.objects.filter(id=int(category_uuid), is_active=True).first()
+            if not category:
+                return APIResponse.error(
+                    code=ErrorCodes.BAD_REQUEST,
+                    message="分类不存在"
+                )
+            category_uuid = category.uuid
         
         # Create article
         article = Article.objects.create(
@@ -723,12 +764,13 @@ def create_article(request, data: ArticleCreateSchema):
             summary=data.summary or '',
             content=data.content,
             author_uuid=request.auth.uuid,
-            category_uuid=data.category_id,
+            category_uuid=category_uuid,
+            featured_image=data.featured_image or '',
             status=data.status or 1,
             is_featured=data.is_featured or False,
             is_top=data.is_top or False,
             is_downloadable=data.is_downloadable or False,
-            file_info=data.file_info
+            file_info=data.file_info or {}
         )
         
         # 返回创建的文章重新加载文章以获取关联数据
@@ -741,6 +783,7 @@ def create_article(request, data: ArticleCreateSchema):
         return APIResponse.success(data=serialized_article)
     
     except Exception as e:
+        logger.exception("创建文章失败")
         return APIResponse.error(
             code=ErrorCodes.INTERNAL_SERVER_ERROR,
             message="创建文章失败"
@@ -1146,3 +1189,446 @@ def get_article_claim_status(request, article_id: int):
             code=ErrorCodes.INTERNAL_SERVER_ERROR,
             message="获取文章状态失败"
         )
+
+
+# --- 系统配置接口 ---
+
+@router.get("/system/configs", response=dict, auth=auth)
+def list_system_configs(request):
+    """获取所有系统配置"""
+    try:
+        if not request.auth.is_staff:
+            return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+        
+        from .models import SystemConfig
+        configs = SystemConfig.objects.filter(is_active=True)
+        data = []
+        for c in configs:
+            item = SystemConfigSchema.model_validate(c).model_dump()
+            # 使用模型自带的脱敏逻辑
+            item['value'] = c.mask_value()
+            data.append(item)
+        return APIResponse.success(data=data)
+    except Exception as e:
+        logger.error(f"获取系统配置失败: {type(e).__name__}")
+        return APIResponse.error(
+            code=ErrorCodes.INTERNAL_SERVER_ERROR,
+            message="获取系统配置失败"
+        )
+
+
+@router.post("/system/configs", response=dict, auth=auth)
+def create_system_config(request, data: SystemConfigCreateSchema):
+    """创建或更新系统配置"""
+    try:
+        if not request.auth.is_staff:
+            return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+        
+        from .models import SystemConfig
+        config, created = SystemConfig.objects.update_or_create(
+            key=data.key,
+            defaults={
+                "value": data.value,
+                "description": data.description,
+                "is_secret": data.is_secret,
+                "is_active": True
+            }
+        )
+        # 返回脱敏后的数据
+        res_data = SystemConfigSchema.model_validate(config).model_dump()
+        res_data['value'] = config.mask_value()
+        return APIResponse.success(data=res_data)
+    except Exception as e:
+        logger.error(f"保存系统配置失败: {type(e).__name__}")
+        return APIResponse.error(
+            code=ErrorCodes.INTERNAL_SERVER_ERROR,
+            message="保存系统配置失败"
+        )
+
+
+# --- AI 在线生成模块接口 ---
+
+@router.post("/ai/providers/{provider_id}/scan", response=dict, auth=auth)
+def scan_ai_models(request, provider_id: int):
+    """扫描并同步 AI 供应商的模型列表"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    
+    result = AIService.scan_provider_models(provider_id)
+    if not result["success"]:
+        return APIResponse.error(message=result.get("error", "扫描失败"))
+    
+    return APIResponse.success(data=result)
+
+
+@router.get("/ai/providers", response=dict)
+def list_ai_providers(request):
+    """获取所有活跃的 AI 供应商（含模型列表）"""
+    providers = AIProvider.objects.filter(is_active=True).prefetch_related('models')
+    data = []
+    for p in providers:
+        # 排除 models 字段进行初步验证
+        item = AIProviderSchema.model_validate(p).model_dump(exclude={'models'})
+        # 手动补充模型列表
+        item['models'] = [AIModelSchema.model_validate(m).model_dump() for m in p.models.filter(is_active=True, is_available=True)]
+        data.append(item)
+    return APIResponse.success(data=data)
+
+
+@router.post("/ai/providers", response=dict, auth=auth)
+def create_ai_provider(request, data: AIProviderCreateSchema):
+    """创建 AI 供应商 (仅管理员)"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    
+    provider = AIProvider.objects.create(**data.dict())
+    # 转换为 Schema 时手动处理 models 列表，因为刚创建时肯定为空
+    res_data = AIProviderSchema.model_validate(provider).model_dump()
+    res_data['models'] = []
+    return APIResponse.success(data=res_data)
+
+
+@router.put("/ai/providers/{provider_id}", response=dict, auth=auth)
+def update_ai_provider(request, provider_id: int, data: AIProviderUpdateSchema):
+    """更新 AI 供应商 (仅管理员)"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    
+    provider = get_object_or_404(AIProvider, id=provider_id)
+    for attr, value in data.dict(exclude_unset=True).items():
+        setattr(provider, attr, value)
+    provider.save()
+    
+    res_data = AIProviderSchema.model_validate(provider).model_dump()
+    res_data['models'] = [AIModelSchema.model_validate(m).model_dump() for m in provider.models.all()]
+    return APIResponse.success(data=res_data)
+
+
+@router.delete("/ai/providers/{provider_id}", response=dict, auth=auth)
+def delete_ai_provider(request, provider_id: int):
+    """删除 AI 供应商 (仅管理员)"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    
+    provider = get_object_or_404(AIProvider, id=provider_id)
+    provider.soft_delete()
+    return APIResponse.success(message="删除成功")
+
+
+@router.get("/ai/templates", response=dict)
+def list_prompt_templates(request, category_uuid: Optional[str] = None):
+    """获取提示词模板列表"""
+    queryset = PromptTemplate.objects.filter(is_active=True)
+    if category_uuid:
+        queryset = queryset.filter(category_uuid=category_uuid)
+    
+    data = [PromptTemplateSchema.model_validate(t).model_dump() for t in queryset]
+    return APIResponse.success(data=data)
+
+
+@router.post("/ai/templates", response=dict, auth=auth)
+def create_prompt_template(request, data: PromptTemplateCreateSchema):
+    """创建提示词模板"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    template = PromptTemplate.objects.create(**data.dict())
+    return APIResponse.success(data=PromptTemplateSchema.model_validate(template).model_dump())
+
+
+@router.get("/ai/templates/export", response=dict, auth=auth)
+def export_prompt_templates(request):
+    """导出所有提示词模板为 JSON"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    templates = PromptTemplate.objects.filter(is_active=True)
+    data = []
+    for t in templates:
+        data.append({
+            "title": t.title,
+            "category_uuid": t.category_uuid,
+            "content": t.content,
+            "variables": t.variables,
+            "description": t.description
+        })
+    return APIResponse.success(data=data)
+
+
+@router.post("/ai/templates/import", response=dict, auth=auth)
+def import_prompt_templates(request, data: List[dict] = Body(...)):
+    """从 JSON 导入提示词模板"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    created_count = 0
+    for item in data:
+        try:
+            PromptTemplate.objects.create(
+                title=item.get("title"),
+                category_uuid=item.get("category_uuid"),
+                content=item.get("content"),
+                variables=item.get("variables", []),
+                description=item.get("description", "")
+            )
+            created_count += 1
+        except Exception as e:
+            logger.error(f"导入模板失败: {str(e)}")
+            continue
+            
+    return APIResponse.success(data={"created": created_count}, message=f"成功导入 {created_count} 个模板")
+
+
+@router.put("/ai/templates/{template_id}", response=dict, auth=auth)
+def update_prompt_template(request, template_id: int, data: PromptTemplateUpdateSchema):
+    """更新提示词模板"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    template = get_object_or_404(PromptTemplate, id=template_id)
+    # 这里可以增加权限检查，比如只能编辑自己创建的，目前先允许登录用户编辑
+    for attr, value in data.dict(exclude_unset=True).items():
+        setattr(template, attr, value)
+    template.save()
+    return APIResponse.success(data=PromptTemplateSchema.model_validate(template).model_dump())
+
+
+@router.delete("/ai/templates/{template_id}", response=dict, auth=auth)
+def delete_prompt_template(request, template_id: int):
+    """删除提示词模板"""
+    if not request.auth.is_staff:
+        return APIResponse.error(code=ErrorCodes.FORBIDDEN, message="权限不足")
+    template = get_object_or_404(PromptTemplate, id=template_id)
+    template.soft_delete()
+    return APIResponse.success(message="删除成功")
+
+
+@router.post("/ai/generate", response=dict, auth=auth)
+def generate_ai_article(request, data: AIArticleGenerateSchema):
+    """在线生成 AI 文章"""
+    # 调用 AI 服务
+    result = AIService.generate_from_template(
+        template_id=data.template_id,
+        provider_id=data.provider_id,
+        model_name=data.model_name,
+        inputs=data.inputs,
+        user_uuid=request.auth.uuid
+    )
+
+    if not result["success"]:
+        return APIResponse.error(message=result.get("error", "生成失败"))
+
+    # 如果需要直接存入文章表
+    article_id = None
+    if data.save_to_article:
+        try:
+            # 这里简单实现，实际可能需要更复杂的逻辑处理分类等
+            template = PromptTemplate.objects.get(id=data.template_id)
+            title = data.inputs.get("title", f"AI生成文章_{timezone.now().strftime('%Y%m%d%H%M')}")
+            
+            # 生成唯一 slug
+            import uuid
+            slug = f"ai-{str(uuid.uuid4())[:8]}"
+            
+            article = Article.objects.create(
+                title=title,
+                slug=slug,
+                content=result["result"],
+                summary=data.inputs.get("summary", result["result"][:200]),
+                author_uuid=request.auth.uuid,
+                category_uuid=template.category_uuid,
+                status=1 # 默认为草稿
+            )
+            article_id = article.id
+        except Exception as e:
+            logger.error(f"保存 AI 文章失败: {str(e)}")
+
+    return APIResponse.success(data={
+        "content": result["result"],
+        "history_id": result.get("history_id"),
+        "article_id": article_id
+    })
+
+
+@router.post("/ai/generate-image", response=dict, auth=auth)
+def generate_ai_image(request, data: AIImageGenerateSchema):
+    """在线生成 AI 文章配图"""
+    prompt = data.prompt
+    
+    # 如果没有提供提示词，则根据文章内容生成
+    if not prompt:
+        if not data.article_content:
+            return APIResponse.error(message="必须提供提示词或文章内容")
+        
+        # 使用默认文本模型生成提示词 (这里可以根据需要优化，比如让用户选模型)
+        # 简单起见，这里假设用户传入了 provider_id 和 model_name 是用于图片的
+        # 实际上生成提示词可能需要一个文本模型
+        # 我们先尝试找一个该供应商的文本模型，或者让用户传两个模型 ID？
+        # 为了简单，我们先要求必须传 prompt，或者在这里直接用传入的模型（如果它支持文本的话）
+        # 更好的做法是：如果没传 prompt，先调用一个默认的文本模型生成 prompt
+        
+        # 临时方案：如果没传 prompt，直接报错提示需要 prompt (前端负责生成 prompt)
+        return APIResponse.error(message="当前版本请提供图片生成提示词")
+
+    # 调用 AI 服务生成图片
+    result = AIService.generate_image(
+        provider_id=data.provider_id,
+        model_name=data.model_name,
+        prompt=prompt,
+        user_uuid=request.auth.uuid,
+        size=data.size,
+        quality=data.quality
+    )
+
+    if not result["success"]:
+        return APIResponse.error(message=result.get("error", "图片生成失败"))
+
+    # 如果提供了文章 ID，则更新文章的特色图片
+    if data.article_id:
+        try:
+            article = Article.objects.get(id=data.article_id)
+            # 这里简单保存 URL，实际生产环境建议下载图片到本地存储
+            article.featured_image = result["image_url"]
+            article.save(update_fields=['featured_image'])
+        except Article.DoesNotExist:
+            logger.warning(f"更新配图时文章 ID {data.article_id} 不存在")
+
+    return APIResponse.success(data={
+        "image_url": result["image_url"],
+        "history_id": result.get("history_id")
+    })
+
+
+@router.post("/ai/generate-image-prompt", response=dict, auth=auth)
+def generate_image_prompt(request, data: dict = Body(...)):
+    """根据文章内容生成图片提示词"""
+    article_content = data.get("content")
+    provider_id = data.get("provider_id")
+    model_name = data.get("model_name")
+    
+    if not all([article_content, provider_id, model_name]):
+        return APIResponse.error(message="缺少必要参数")
+    
+    result = AIService.generate_image_prompt(
+        provider_id=provider_id,
+        model_name=model_name,
+        article_content=article_content,
+        user_uuid=request.auth.uuid
+    )
+    
+    if not result["success"]:
+        return APIResponse.error(message=result.get("error", "生成提示词失败"))
+        
+    return APIResponse.success(data={"prompt": result["prompt"]})
+
+
+@router.post("/ai/polish", response=dict, auth=auth)
+def polish_article(request, data: dict = Body(...)):
+    """根据用户指令润色文章内容"""
+    content = data.get("content")
+    instruction = data.get("instruction")
+    provider_id = data.get("provider_id")
+    model_name = data.get("model_name")
+    
+    if not all([content, instruction, provider_id, model_name]):
+        return APIResponse.error(message="缺少必要参数")
+    
+    result = AIService.polish_content(
+        provider_id=provider_id,
+        model_name=model_name,
+        content=content,
+        instruction=instruction,
+        user_uuid=request.auth.uuid
+    )
+    
+    if not result["success"]:
+        return APIResponse.error(message=result.get("error", "润色失败"))
+        
+    return APIResponse.success(data={"content": result["result"]})
+
+
+@router.post("/ai/trends/discover", response=dict, auth=auth)
+def discover_trends(request, category_uuid: str, query: Optional[str] = None):
+    """联网发现热门选题"""
+    search_service = SearchService()
+    trends = search_service.discover_hot_trends(category_uuid, query)
+    return APIResponse.success(data=trends)
+
+
+# --- OpenAI Mock Endpoints for Development ---
+
+if settings.DEBUG:
+    @router.get("/v1/models", tags=["Mock"], auth=None)
+    def mock_v1_models(request):
+        """Mock OpenAI models endpoint"""
+        return {
+            "object": "list",
+            "data": [
+                {"id": "gpt-3.5-turbo", "object": "model", "created": 1677610602, "owned_by": "openai"},
+                {"id": "gpt-4", "object": "model", "created": 1687882411, "owned_by": "openai"},
+                {"id": "dall-e-3", "object": "model", "created": 1698785189, "owned_by": "openai"}
+            ]
+        }
+
+
+    @router.post("/v1/chat/completions", tags=["Mock"], auth=None)
+    def mock_chat_completions(request, data: dict = Body(...)):
+        """Mock OpenAI chat completions endpoint"""
+        messages = data.get("messages", [])
+        prompt = messages[-1]["content"] if messages else ""
+        
+        # Simulate different responses based on prompt
+        if "图片" in prompt and "提示词" in prompt:
+            result = "A beautiful scenery of mountains at sunset, cinematic lighting, 8k resolution"
+        elif "润色" in prompt or "修改" in prompt:
+            result = "这是润色后的内容：\n\n今天天气真不错，阳光明媚，微风徐徐，非常适合户外活动。"
+        else:
+            result = f"这是一篇关于 {prompt[:20]}... 的 AI 生成文章内容。\n\n随着人工智能技术的发展，创作变得更加高效..."
+
+        return {
+            "id": "chatcmpl-mock",
+            "object": "chat.completion",
+            "created": int(timezone.now().timestamp()),
+            "model": data.get("model", "gpt-3.5-turbo"),
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": result},
+                    "finish_reason": "stop"
+                }
+            ]
+        }
+
+
+    @router.post("/v1/images/generations", tags=["Mock"], auth=None)
+    def mock_image_generations(request, data: dict = Body(...)):
+        """Mock OpenAI image generations endpoint"""
+        return {
+            "created": int(timezone.now().timestamp()),
+            "data": [
+                {"url": "https://picsum.photos/1024/1024"}
+            ]
+        }
+
+
+@router.get("/ai/trends", response=dict, auth=auth)
+def list_trends(request, category_uuid: str, limit: int = 10):
+    """获取已发现的热门选题"""
+    search_service = SearchService()
+    trends = search_service.get_trends_by_category(category_uuid, limit)
+    data = [HotTrendSchema.model_validate(t).model_dump() for t in trends]
+    return APIResponse.success(data=data)
+
+
+@router.get("/ai/history", response=dict, auth=auth)
+def list_generation_history(request, limit: int = 20, offset: int = 0):
+    """获取用户的生成记录"""
+    queryset = GenerationHistory.objects.filter(
+        user_uuid=request.auth.uuid,
+        is_active=True
+    ).order_by('-create_time')
+    
+    total = queryset.count()
+    history = queryset[offset:offset+limit]
+    
+    data = [GenerationHistorySchema.model_validate(h).model_dump() for h in history]
+    return APIResponse.success(data={
+        "items": data,
+        "total": total
+    })

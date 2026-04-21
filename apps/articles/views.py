@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Article, Category, ArticleClaim
@@ -11,6 +12,36 @@ import json
 def article_list(request):
     """文章列表页面"""
     return render(request, 'articles/list.html')
+
+
+@login_required
+def ai_create(request):
+    """AI 在线创作页面"""
+    return render(request, 'articles/ai_create.html')
+
+
+@staff_member_required
+def ai_admin_dashboard(request):
+    """AI 管理后台主页"""
+    return render(request, 'articles/admin/dashboard.html')
+
+
+@staff_member_required
+def ai_admin_configs(request):
+    """AI 系统参数配置页面"""
+    return render(request, 'articles/admin/configs.html')
+
+
+@staff_member_required
+def ai_admin_providers(request):
+    """AI 供应商与模型管理页面"""
+    return render(request, 'articles/admin/providers.html')
+
+
+@staff_member_required
+def ai_admin_templates(request):
+    """AI 提示词模板管理页面"""
+    return render(request, 'articles/admin/templates.html')
 
 
 def article_detail(request, article_id):

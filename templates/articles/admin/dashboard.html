@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}AI 管理后台 - 文库{% endblock %}
+
+{% block page_title %}AI 管理后台中心{% endblock %}
+
+{% block extra_css %}
+    .admin-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .admin-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        color: var(--primary-color);
+    }
+    .admin-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--primary-color);
+    }
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row g-4">
+        <!-- 系统参数配置 -->
+        <div class="col-md-4">
+            <a href="{% url 'articles:ai_admin_configs' %}" class="card admin-card p-4 text-center">
+                <div class="admin-icon">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <h4>系统参数配置</h4>
+                <p class="text-muted">管理 API Key、全局开关等核心参数</p>
+            </a>
+        </div>
+
+        <!-- 供应商与模型管理 -->
+        <div class="col-md-4">
+            <a href="{% url 'articles:ai_admin_providers' %}" class="card admin-card p-4 text-center">
+                <div class="admin-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <h4>供应商与模型</h4>
+                <p class="text-muted">配置 AI 接口地址、扫描在线模型</p>
+            </a>
+        </div>
+
+        <!-- 提示词模板管理 -->
+        <div class="col-md-4">
+            <a href="{% url 'articles:ai_admin_templates' %}" class="card admin-card p-4 text-center">
+                <div class="admin-icon">
+                    <i class="fas fa-file-code"></i>
+                </div>
+                <h4>提示词模板</h4>
+                <p class="text-muted">管理文章生成 Prompt、变量定义</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- 简要统计信息 -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card p-4">
+                <h5 class="mb-4">最近生成动态</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="latest-gen-table">
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>状态</th>
+                                <th>生成时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="latest-gen-body">
+                            <tr>
+                                <td colspan="4" class="text-center py-4">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLatestHistory();
+    });
+
+    async function loadLatestHistory() {
+        try {
+            const res = await fetchCall.get('articles/ai/history?limit=5');
+            const data = await res.json();
+            const body = document.getElementById('latest-gen-body');
+            body.innerHTML = '';
+
+            if (data.data && data.data.items && data.data.items.length > 0) {
+                data.data.items.forEach(h => {
+                    const row = `
+                        <tr>
+                            <td>${h.user_uuid.substring(0, 8)}...</td>
+                            <td>
+                                <span class="badge bg-${getStatusColor(h.status)}">${h.status}</span>
+                            </td>
+                            <td>${new Date(h.create_time).toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-link" onclick="viewPrompt('${h.id}')">查看 Prompt</button>
+                            </td>
+                        </tr>
+                    `;
+                    body.innerHTML += row;
+                });
+            } else {
+                body.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">暂无生成记录</td></tr>';
+            }
+        } catch (err) {
+            console.error('加载历史记录失败', err);
+        }
+    }
+
+    function getStatusColor(status) {
+        switch(status) {
+            case 'success': return 'success';
+            case 'failed': return 'danger';
+            case 'pending': return 'warning';
+            default: return 'secondary';
+        }
+    }
+
+    function viewPrompt(id) {
+        // TODO: 实现查看详情弹窗
+        alert('查看详情功能开发中 (ID: ' + id + ')');
+    }
+</script>
+{% endblock %}

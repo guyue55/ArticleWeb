@@ -76,6 +76,8 @@
     </script>
     {% endblock %}
     
+    {% block extra_head %}{% endblock %}
+    
     <style>
         /* CSS Variables - Global Theme */
         :root {
@@ -346,7 +348,6 @@
         .message-toast.message-warning { background-color: #ffc107; color: #212529; }
         .message-toast.message-info { background-color: #17a2b8; }
 
-        /* Page-specific styles can be added in blocks */
         {% block extra_css %}{% endblock %}
     </style>
 </head>
@@ -383,6 +384,20 @@
                 </div>
                 <span>文章列表</span>
             </a>
+            <a href="/articles/ai-create/" class="nav-item {% if request.resolver_match.url_name == 'ai_create' %}active{% endif %}">
+                <div class="nav-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span>AI 创作</span>
+            </a>
+            {% if user.is_staff %}
+            <a href="{% url 'articles:ai_admin_dashboard' %}" class="nav-item {% if 'ai_admin' in request.resolver_match.url_name %}active{% endif %}">
+                <div class="nav-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <span>AI 管理</span>
+            </a>
+            {% endif %}
             <a href="/articles/categories/" class="nav-item {% if request.resolver_match.url_name == 'categories' %}active{% endif %}">
                 <div class="nav-icon">
                     <i class="fas fa-folder-open"></i>
@@ -406,6 +421,7 @@
     </div>
 
     <!-- JavaScript Dependencies -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.6.0/axios.min.js"></script>
     <!-- Global Theme Script -->
     <script src="/static/js/global-theme.js"></script>
@@ -629,8 +645,11 @@
                     window.AuthManager.checkAuth(true).then(isAuthenticated => {
                         if (isAuthenticated) {
                             console.log('用户已登录');
-                            // 可以在这里执行需要登录后才能进行的操作
-                            {% block auth_required_init %}{% endblock %}
+                            window.isAuthenticated = true;
+                            // 执行初始化块
+                            (function() {
+                                {% block auth_required_init %}{% endblock %}
+                            })();
                         }
                     }).catch(error => {
                         console.error('登录状态检查失败:', error);

@@ -54,6 +54,41 @@
         // 如果没有斜杠开头，添加基础路径和斜杠
         return window.API_CONFIG.BASE_URL + '/' + endpoint;
     };
+
+    window.API_BASE_URL = window.API_CONFIG.BASE_URL + '/';
+
+    window.getCookie = function(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            return parts.pop().split(';').shift();
+        }
+        return null;
+    };
+
+    window.ensureCsrfToken = async function() {
+        const cookieToken = window.getCookie('csrftoken');
+        if (cookieToken) {
+            return cookieToken;
+        }
+
+        try {
+            const res = await fetch(window.getApiUrl(window.API_CONFIG.USERS.CSRF), {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (!res.ok) {
+                return null;
+            }
+            const data = await res.json();
+            if (data.code === 0 && data.data && data.data.csrf_token) {
+                return data.data.csrf_token;
+            }
+            return null;
+        } catch (err) {
+            return null;
+        }
+    };
     
     /**
      * 便捷的API调用方法
@@ -113,9 +148,12 @@
          * @returns {Promise} fetch响应
          */
         get: function(endpoint, options = {}) {
+            const { headers = {}, method: _method, credentials: _credentials, ...rest } = options;
             return fetch(window.getApiUrl(endpoint), {
                 method: 'GET',
-                ...options
+                credentials: 'include',
+                headers: { ...headers },
+                ...rest
             });
         },
         
@@ -126,15 +164,19 @@
          * @param {Object} options - fetch选项
          * @returns {Promise} fetch响应
          */
-        post: function(endpoint, data = {}, options = {}) {
+        post: async function(endpoint, data = {}, options = {}) {
+            const csrfToken = await window.ensureCsrfToken();
+            const { headers = {}, method: _method, body: _body, credentials: _credentials, ...rest } = options;
             return fetch(window.getApiUrl(endpoint), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...options.headers
+                    ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+                    ...headers
                 },
                 body: JSON.stringify(data),
-                ...options
+                credentials: 'include',
+                ...rest
             });
         },
         
@@ -145,15 +187,19 @@
          * @param {Object} options - fetch选项
          * @returns {Promise} fetch响应
          */
-        put: function(endpoint, data = {}, options = {}) {
+        put: async function(endpoint, data = {}, options = {}) {
+            const csrfToken = await window.ensureCsrfToken();
+            const { headers = {}, method: _method, body: _body, credentials: _credentials, ...rest } = options;
             return fetch(window.getApiUrl(endpoint), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...options.headers
+                    ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+                    ...headers
                 },
                 body: JSON.stringify(data),
-                ...options
+                credentials: 'include',
+                ...rest
             });
         },
         
@@ -163,10 +209,17 @@
          * @param {Object} options - fetch选项
          * @returns {Promise} fetch响应
          */
-        delete: function(endpoint, options = {}) {
+        delete: async function(endpoint, options = {}) {
+            const csrfToken = await window.ensureCsrfToken();
+            const { headers = {}, method: _method, body: _body, credentials: _credentials, ...rest } = options;
             return fetch(window.getApiUrl(endpoint), {
                 method: 'DELETE',
-                ...options
+                headers: {
+                    ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+                    ...headers
+                },
+                credentials: 'include',
+                ...rest
             });
         }
     };

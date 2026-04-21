@@ -31,7 +31,7 @@ from apps.users.views import (
 from apps.users.health import HealthCheckView
 
 # 创建API实例，不使用全局认证，让每个端点自己处理
-api = NinjaAPI(title="Article Web API", version="1.0.0", csrf=False)
+api = NinjaAPI(title="Article Web API", version="1.0.0")
 
 # 导入API路由
 from apps.articles.api import router as articles_router

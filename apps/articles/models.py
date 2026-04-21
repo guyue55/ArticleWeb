@@ -6,6 +6,7 @@ from django.core.validators import MinLengthValidator
 from django.utils import timezone
 
 from apps.common.models import BaseModel, ActiveManager, AllManager
+from apps.common.utils import mask_sensitive_data
 
 User = get_user_model()
 
@@ -360,3 +361,345 @@ class ArticleDownload(BaseModel):
     
     def __str__(self):
         return f"下载 {self.id} - 文章UUID: {self.article_uuid} - 文件类型: {self.file_type}"
+
+
+class AIProvider(BaseModel):
+    """AI模型供应商模型"""
+    
+    name = models.CharField(
+        verbose_name="供应商名称",
+        max_length=64,
+        unique=True,
+        help_text="如：Baidu, OpenAI, DeepSeek",
+        db_comment="AI服务提供商的名称"
+    )
+    api_base = models.CharField(
+        verbose_name="API基础路径",
+        max_length=255,
+        help_text="API的基础URL路径",
+        db_comment="AI服务的API基础URL"
+    )
+    api_key = models.CharField(
+        verbose_name="API密钥",
+        max_length=255,
+        help_text="访问API的Key (敏感数据，禁止在非脱敏接口返回)",
+        db_comment="用于身份验证的API Key"
+    )
+    config = models.JSONField(
+        verbose_name="额外配置",
+        default=dict,
+        blank=True,
+        help_text="特定供应商的额外参数（JSON格式）",
+        db_comment="存储特定供应商所需的其他配置信息"
+    )
+    is_openapi = models.BooleanField(
+        verbose_name="是否OpenAPI标准",
+        default=True,
+        help_text="如果勾选，系统将尝试调用 /v1/models 接口扫描模型",
+        db_comment="标识该供应商是否遵循OpenAPI标准协议"
+    )
+    last_scanned_at = models.DateTimeField(
+        verbose_name="最后扫描时间",
+        null=True,
+        blank=True,
+        help_text="上次自动扫描模型的时间",
+        db_comment="模型列表最后一次从API同步的时间"
+    )
+    
+    # Custom managers
+    objects = ActiveManager()
+    all_objects = AllManager()
+    
+    class Meta:
+        verbose_name = "AI模型供应商"
+        verbose_name_plural = "AI模型供应商"
+        db_table = 'article_ai_providers'
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({mask_sensitive_data(self.api_key)})"
+
+    def mask_api_key(self) -> str:
+        """返回脱敏后的 API Key"""
+        return mask_sensitive_data(self.api_key)
+
+
+class AIModel(BaseModel):
+    """AI具体模型信息模型"""
+    
+    provider = models.ForeignKey(
+        AIProvider,
+        on_delete=models.CASCADE,
+        related_name='models',
+        verbose_name="所属供应商",
+        db_comment="关联的AI服务供应商"
+    )
+    name = models.CharField(
+        verbose_name="模型名称",
+        max_length=128,
+        help_text="模型的技术标识符，如 gpt-4, ernie-bot-4",
+        db_comment="模型在API调用中使用的唯一标识符"
+    )
+    display_name = models.CharField(
+        verbose_name="显示名称",
+        max_length=128,
+        help_text="页面上显示的名称，如 文心一言 4.0",
+        db_comment="模型在前端界面显示的友好名称"
+    )
+    description = models.TextField(
+        verbose_name="模型描述",
+        max_length=500,
+        default='',
+        blank=True,
+        help_text="模型的功能和限制说明",
+        db_comment="对该模型能力的详细描述"
+    )
+    is_available = models.BooleanField(
+        verbose_name="是否可用",
+        default=True,
+        help_text="标识该模型当前是否可以调用",
+        db_comment="模型当前的服务状态"
+    )
+    
+    # Custom managers
+    objects = ActiveManager()
+    all_objects = AllManager()
+    
+    class Meta:
+        verbose_name = "AI具体模型"
+        verbose_name_plural = "AI具体模型"
+        db_table = 'article_ai_models'
+        unique_together = ['provider', 'name']
+        ordering = ['display_name']
+    
+    def __str__(self):
+        return f"{self.provider.name} - {self.display_name}"
+
+
+class PromptTemplate(BaseModel):
+    """提示词模板模型"""
+    
+    title = models.CharField(
+        verbose_name="模板标题",
+        max_length=128,
+        help_text="模板的显示名称",
+        db_comment="提示词模板的标题"
+    )
+    category_uuid = models.CharField(
+        verbose_name="关联分类UUID",
+        max_length=255,
+        help_text="模板关联的文章分类UUID",
+        db_comment="关联的文章分类UUID"
+    )
+    content = models.TextField(
+        verbose_name="模板内容",
+        help_text="基于 Jinja2 语法的模板正文",
+        db_comment="提示词模板的实际内容，支持Jinja2语法"
+    )
+    variables = models.JSONField(
+        verbose_name="模板变量",
+        default=list,
+        blank=True,
+        help_text="定义用户需要输入的变量名、类型及默认值",
+        db_comment="存储模板中定义的变量信息"
+    )
+    description = models.TextField(
+        verbose_name="模板描述",
+        max_length=500,
+        default='',
+        blank=True,
+        help_text="模板功能详细说明",
+        db_comment="模板的详细描述信息"
+    )
+    
+    # Custom managers
+    objects = ActiveManager()
+    all_objects = AllManager()
+    
+    class Meta:
+        verbose_name = "提示词模板"
+        verbose_name_plural = "提示词模板"
+        db_table = 'article_prompt_templates'
+        ordering = ['-create_time']
+    
+    def __str__(self):
+        return self.title
+
+
+class HotTrend(BaseModel):
+    """热门选题与溯源模型"""
+    
+    topic = models.CharField(
+        verbose_name="话题标题",
+        max_length=255,
+        help_text="热门话题标题或关键词",
+        db_comment="从联网搜索获取的热门话题标题"
+    )
+    source_urls = models.JSONField(
+        verbose_name="来源链接",
+        default=list,
+        help_text="存储来源链接列表（URL、标题、来源平台）",
+        db_comment="热门话题的相关来源链接信息"
+    )
+    summary = models.TextField(
+        verbose_name="热点摘要",
+        default='',
+        blank=True,
+        help_text="AI 对该热点的简要分析/摘要",
+        db_comment="对热点话题的AI分析摘要"
+    )
+    category_uuid = models.CharField(
+        verbose_name="分类UUID",
+        max_length=255,
+        help_text="话题所属分类的UUID",
+        db_comment="话题关联的分类UUID"
+    )
+    discovery_time = models.DateTimeField(
+        verbose_name="发现时间",
+        default=timezone.now,
+        help_text="话题被系统发现的时间",
+        db_comment="热点话题的抓取/发现时间"
+    )
+    
+    # Custom managers
+    objects = ActiveManager()
+    all_objects = AllManager()
+    
+    class Meta:
+        verbose_name = "热门选题"
+        verbose_name_plural = "热门选题"
+        db_table = 'article_hot_trends'
+        ordering = ['-discovery_time']
+        indexes = [
+            models.Index(fields=['category_uuid', 'discovery_time'], name='idx_trend_cat_time'),
+        ]
+    
+    def __str__(self):
+        return self.topic
+
+
+class GenerationHistory(BaseModel):
+    """AI 生成记录模型"""
+    
+    STATUS_CHOICES = [
+        ('pending', '生成中'),
+        ('success', '成功'),
+        ('failed', '失败'),
+    ]
+    
+    user_uuid = models.CharField(
+        verbose_name="用户UUID",
+        max_length=255,
+        help_text="执行生成操作的用户UUID",
+        db_comment="操作用户的UUID"
+    )
+    prompt = models.TextField(
+        verbose_name="最终提示词",
+        help_text="最终发送给 AI 的完整提示词",
+        db_comment="发送给AI的完整Prompt内容"
+    )
+    result = models.TextField(
+        verbose_name="生成结果",
+        default='',
+        blank=True,
+        help_text="AI 返回的原始文本内容",
+        db_comment="AI生成文章的内容结果"
+    )
+    sources = models.JSONField(
+        verbose_name="参考来源",
+        default=list,
+        blank=True,
+        help_text="生成该文章时参考的来源链接",
+        db_comment="文章生成过程中参考的外部链接信息"
+    )
+    status = models.CharField(
+        verbose_name="生成状态",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text="AI 生成状态",
+        db_comment="生成状态：pending-生成中，success-成功，failed-失败"
+    )
+    error_message = models.TextField(
+        verbose_name="错误信息",
+        default='',
+        blank=True,
+        help_text="生成失败时的错误描述",
+        db_comment="生成过程中出现的错误详情"
+    )
+    
+    # Custom managers
+    objects = ActiveManager()
+    all_objects = AllManager()
+    
+    class Meta:
+        verbose_name = "AI生成记录"
+        verbose_name_plural = "AI生成记录"
+        db_table = 'article_generation_history'
+        ordering = ['-create_time']
+        indexes = [
+            models.Index(fields=['user_uuid', 'status'], name='idx_gen_user_status'),
+        ]
+    
+    def __str__(self):
+        return f"生成记录 {self.id} - 用户: {self.user_uuid} - 状态: {self.status}"
+
+
+class SystemConfig(BaseModel):
+    """系统全局配置模型（如 API Key）"""
+    
+    key = models.CharField(
+        verbose_name="配置键",
+        max_length=128,
+        unique=True,
+        help_text="配置的唯一标识，如 TAVILY_API_KEY",
+        db_comment="配置项的唯一键名"
+    )
+    value = models.TextField(
+        verbose_name="配置值",
+        help_text="配置的具体内容 (若为敏感数据请勾选'是否敏感')",
+        db_comment="配置项的具体数值或内容"
+    )
+    description = models.CharField(
+        verbose_name="配置描述",
+        max_length=255,
+        default='',
+        blank=True,
+        help_text="配置项的用途说明",
+        db_comment="对该配置项用途的详细描述"
+    )
+    is_secret = models.BooleanField(
+        verbose_name="是否敏感",
+        default=False,
+        help_text="敏感信息在前端将脱敏显示",
+        db_comment="标识该配置是否为敏感信息，如API Key"
+    )
+    
+    # Custom managers
+    objects = ActiveManager()
+    all_objects = AllManager()
+    
+    class Meta:
+        verbose_name = "系统配置"
+        verbose_name_plural = "系统配置"
+        db_table = 'article_system_configs'
+        ordering = ['key']
+    
+    def __str__(self):
+        val = mask_sensitive_data(self.value) if self.is_secret else self.value
+        return f"{self.key}: {val[:30]}..."
+    
+    def mask_value(self) -> str:
+        """返回脱敏后的配置值"""
+        if self.is_secret:
+            return mask_sensitive_data(self.value)
+        return self.value
+    
+    @classmethod
+    def get_value(cls, key: str, default: str = None) -> str:
+        """获取配置值，优先从数据库获取，失败则返回默认值"""
+        try:
+            config = cls.objects.get(key=key, is_active=True)
+            return config.value
+        except cls.DoesNotExist:
+            return default

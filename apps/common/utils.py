@@ -100,11 +100,33 @@ def format_datetime(dt: Optional[datetime], format_str: str = '%Y-%m-%d %H:%M:%S
         format_str: The format string.
         
     Returns:
-        str or None: Formatted datetime string or None if dt is None.
+        Optional[str]: Formatted datetime string or None.
     """
     if dt is None:
         return None
     return dt.strftime(format_str)
+
+
+def mask_sensitive_data(data: str, visible_prefix: int = 4, visible_suffix: int = 4, mask_char: str = '*') -> str:
+    """脱敏处理敏感字符串（如 API Key）。
+    
+    Args:
+        data: 原始敏感数据。
+        visible_prefix: 前端保留可见的字符数。
+        visible_suffix: 后端保留可见的字符数。
+        mask_char: 遮掩字符。
+        
+    Returns:
+        str: 脱敏后的字符串。
+    """
+    if not data:
+        return ""
+    
+    data_len = len(data)
+    if data_len <= visible_prefix + visible_suffix:
+        return mask_char * 8
+    
+    return f"{data[:visible_prefix]}{mask_char * 8}{data[-visible_suffix:]}"
 
 
 def get_client_ip(request) -> str:

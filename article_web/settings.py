@@ -161,6 +161,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
+# Auth redirect settings
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/articles/'
+
 # Session settings
 SESSION_COOKIE_AGE = 86400 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = True
@@ -237,3 +241,4 @@ ARTICLE_SCAN_INTERVAL = env('ARTICLE_SCAN_INTERVAL')
 # 确保文章相关目录存在
 os.makedirs(ARTICLE_GENERATED_DIR, exist_ok=True)
 os.makedirs(ARTICLE_STATIC_DIR, exist_ok=True)
+ENABLE_API_AUTHENTICATION = False

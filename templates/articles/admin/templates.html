@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}提示词模板管理 - AI 管理后台{% endblock %}
+
+{% block page_title %}提示词模板管理{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">模板列表</h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary" onclick="exportTemplates()">
+                    <i class="fas fa-download me-2"></i>导出所有
+                </button>
+                <button class="btn btn-outline-secondary" onclick="document.getElementById('importFile').click()">
+                    <i class="fas fa-upload me-2"></i>导入模板
+                </button>
+                <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importTemplates(this)">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#templateModal" onclick="resetTemplateForm()">
+                    <i class="fas fa-plus me-2"></i>新增模板
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>标题</th>
+                        <th>关联分类</th>
+                        <th>变量定义</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="template-list-body">
+                    <tr>
+                        <td colspan="5" class="text-center py-4">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 模板编辑弹窗 -->
+<div class="modal fade" id="templateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="templateModalTitle">编辑提示词模板</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm">
+                    <input type="hidden" id="template-id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">模板标题</label>
+                            <input type="text" class="form-control" id="template-title" placeholder="如: 职场干货分享" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">关联分类</label>
+                            <select class="form-select" id="template-category" required>
+                                <option value="">选择分类...</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">提示词内容 (支持 Jinja2 语法)</label>
+                            <textarea class="form-control font-monospace" id="template-content" rows="10" 
+                                      placeholder="你是一个专家... 文章主题是 {{topic}}..." required></textarea>
+                            <div class="form-text">使用 <code>{{变量名}}</code> 来定义占位符</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">变量配置 (JSON 数组)</label>
+                            <textarea class="form-control font-monospace" id="template-vars" rows="4" 
+                                      placeholder='[{"name": "topic", "label": "文章主题", "default": "AI技术"}]'></textarea>
+                            <div class="form-text">定义前端生成的输入表单字段</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">模板描述</label>
+                            <input type="text" class="form-control" id="template-desc">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveTemplate()">保存模板</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let templates = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTemplates();
+        loadCategories();
+    });
+
+    async function loadCategories() {
+        try {
+            const res = await fetchCall.get('articles/meta/categories');
+            const data = await res.json();
+            const select = document.getElementById('template-category');
+            data.data.forEach(c => {
+                const opt = new Option(c.name, c.uuid);
+                select.add(opt);
+            });
+        } catch (err) { console.error(err); }
+    }
+
+    async function loadTemplates() {
+        try {
+            const res = await fetchCall.get('articles/ai/templates');
+            const data = await res.json();
+            const body = document.getElementById('template-list-body');
+            body.innerHTML = '';
+            
+            if (data.data && data.data.length > 0) {
+                templates = data.data;
+                data.data.forEach(t => {
+                    const row = `
+                        <tr>
+                            <td><strong>${t.title}</strong></td>
+                            <td><span class="badge bg-secondary">${t.category_uuid.substring(0,8)}...</span></td>
+                            <td>${t.variables.length} 个变量</td>
+                            <td class="small">${new Date(t.create_time).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTemplate(${t.id})">编辑</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTemplate(${t.id})">删除</button>
+                            </td>
+                        </tr>
+                    `;
+                    body.innerHTML += row;
+                });
+            } else {
+                body.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">暂无模板配置</td></tr>';
+            }
+        } catch (err) {
+            showMessage('加载模板失败', 'error');
+        }
+    }
+
+    function resetTemplateForm() {
+        document.getElementById('templateModalTitle').innerText = '新增提示词模板';
+        document.getElementById('template-id').value = '';
+        document.getElementById('templateForm').reset();
+        document.getElementById('template-vars').value = '[]';
+    }
+
+    function editTemplate(id) {
+        const t = templates.find(item => item.id === id);
+        if (!t) return;
+
+        document.getElementById('templateModalTitle').innerText = '编辑提示词模板';
+        document.getElementById('template-id').value = t.id;
+        document.getElementById('template-title').value = t.title;
+        document.getElementById('template-category').value = t.category_uuid;
+        document.getElementById('template-content').value = t.content;
+        document.getElementById('template-vars').value = JSON.stringify(t.variables, null, 2);
+        document.getElementById('template-desc').value = t.description;
+
+        const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+        modal.show();
+    }
+
+    async function saveTemplate() {
+        const id = document.getElementById('template-id').value;
+        let vars = [];
+        try {
+            vars = JSON.parse(document.getElementById('template-vars').value || '[]');
+        } catch (e) {
+            showMessage('变量配置 JSON 格式错误', 'error');
+            return;
+        }
+
+        const payload = {
+            title: document.getElementById('template-title').value,
+            category_uuid: document.getElementById('template-category').value,
+            content: document.getElementById('template-content').value,
+            variables: vars,
+            description: document.getElementById('template-desc').value
+        };
+
+        if (!payload.title || !payload.category_uuid || !payload.content) {
+            showMessage('请填写必填项', 'warning');
+            return;
+        }
+
+        const url = id ? `${window.API_BASE_URL}articles/ai/templates/${id}` : `${window.API_BASE_URL}articles/ai/templates`;
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const endpoint = url.replace(window.API_BASE_URL, '');
+            const res = method === 'PUT'
+                ? await fetchCall.put(endpoint, payload)
+                : await fetchCall.post(endpoint, payload);
+            const data = await res.json();
+            if (data.code === 0) {
+                showMessage('模板已保存', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('templateModal')).hide();
+                loadTemplates();
+            } else {
+                showMessage(data.message, 'error');
+            }
+        } catch (err) {
+            showMessage('网络请求失败', 'error');
+        }
+    }
+
+    async function deleteTemplate(id) {
+        if (!confirm('确定要删除该模板吗？')) return;
+        try {
+            const res = await fetchCall.delete(`articles/ai/templates/${id}`);
+            const data = await res.json();
+            if (data.code === 0) {
+                showMessage('删除成功', 'success');
+                loadTemplates();
+            }
+        } catch (err) { showMessage('删除失败', 'error'); }
+    }
+
+    async function exportTemplates() {
+        try {
+            const res = await fetchCall.get('articles/ai/templates/export');
+            const data = await res.json();
+            if (data.code === 0) {
+                const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ai_templates_export_${new Date().getTime()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showMessage('导出成功', 'success');
+            }
+        } catch (err) {
+            showMessage('导出失败', 'error');
+        }
+    }
+
+    function importTemplates(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!Array.isArray(data)) {
+                    showMessage('导入格式错误，应为 JSON 数组', 'error');
+                    return;
+                }
+
+                const res = await fetchCall.post('articles/ai/templates/import', data);
+                const result = await res.json();
+                if (result.code === 0) {
+                    showMessage(result.message, 'success');
+                    loadTemplates();
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (err) {
+                showMessage('导入解析失败', 'error');
+            } finally {
+                input.value = ''; // 清空选择，方便下次导入同一文件
+            }
+        };
+        reader.readAsText(file);
+    }
+</script>
+{% endblock %}

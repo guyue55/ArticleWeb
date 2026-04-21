@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}系统参数配置 - AI 管理后台{% endblock %}
+
+{% block page_title %}系统参数配置{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">全局配置项</h5>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#configModal" onclick="resetForm()">
+                <i class="fas fa-plus me-2"></i>新增配置
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>配置键 (Key)</th>
+                        <th>配置值 (Value)</th>
+                        <th>描述</th>
+                        <th>类型</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="config-list-body">
+                    <tr>
+                        <td colspan="5" class="text-center py-4">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">新增系统配置</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    <div class="mb-3">
+                        <label class="form-label">配置键 (Key)</label>
+                        <input type="text" class="form-control" id="config-key" placeholder="如: TAVILY_API_KEY" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">配置值 (Value)</label>
+                        <textarea class="form-control" id="config-value" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-control" id="config-desc">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="config-is-secret">
+                        <label class="form-check-label" for="config-is-secret">是否敏感数据 (勾选后前端将脱敏显示)</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentConfigs = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadConfigs();
+    });
+
+    async function loadConfigs() {
+        try {
+            const res = await fetchCall.get('articles/system/configs');
+            const data = await res.json();
+            const body = document.getElementById('config-list-body');
+            body.innerHTML = '';
+            
+            if (data.data && data.data.length > 0) {
+                currentConfigs = data.data;
+                data.data.forEach(c => {
+                    const row = `
+                        <tr>
+                            <td><code>${c.key}</code></td>
+                            <td><span class="text-truncate d-inline-block" style="max-width: 200px;">${c.value}</span></td>
+                            <td class="text-muted small">${c.description || '-'}</td>
+                            <td>
+                                <span class="badge ${c.is_secret ? 'bg-warning' : 'bg-info'}">
+                                    ${c.is_secret ? '敏感' : '普通'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="editConfig('${c.key}')">编辑</button>
+                            </td>
+                        </tr>
+                    `;
+                    body.innerHTML += row;
+                });
+            } else {
+                body.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">暂无配置项</td></tr>';
+            }
+        } catch (err) {
+            showMessage('加载配置失败', 'error');
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('modalTitle').innerText = '新增系统配置';
+        document.getElementById('config-key').disabled = false;
+        document.getElementById('configForm').reset();
+    }
+
+    function editConfig(key) {
+        const config = currentConfigs.find(c => c.key === key);
+        if (!config) return;
+
+        document.getElementById('modalTitle').innerText = '编辑系统配置';
+        document.getElementById('config-key').value = config.key;
+        document.getElementById('config-key').disabled = true; // Key 不允许修改
+        document.getElementById('config-value').value = config.value.includes('***') ? '' : config.value; // 如果已脱敏则清空方便重新输入
+        document.getElementById('config-desc').value = config.description;
+        document.getElementById('config-is-secret').checked = config.is_secret;
+
+        const modal = new bootstrap.Modal(document.getElementById('configModal'));
+        modal.show();
+    }
+
+    async function saveConfig() {
+        const key = document.getElementById('config-key').value;
+        const value = document.getElementById('config-value').value;
+        const desc = document.getElementById('config-desc').value;
+        const isSecret = document.getElementById('config-is-secret').checked;
+
+        if (!key || !value) {
+            showMessage('请填写完整 Key 和 Value', 'warning');
+            return;
+        }
+
+        try {
+            const res = await fetchCall.post('articles/system/configs', {
+                key: key,
+                value: value,
+                description: desc,
+                is_secret: isSecret
+            });
+            const data = await res.json();
+            if (data.code === 0) {
+                showMessage('配置已保存', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+                loadConfigs();
+            } else {
+                showMessage(data.message, 'error');
+            }
+        } catch (err) {
+            showMessage('保存失败', 'error');
+        }
+    }
+</script>
+{% endblock %}
