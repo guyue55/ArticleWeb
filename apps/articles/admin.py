@@ -29,9 +29,9 @@ class CategoryAdmin(admin.ModelAdmin):
     
     def article_count(self, obj):
         """Display article count for category."""
-        count = obj.articles.filter(is_active=True).count()
+        count = Article.objects.filter(category_uuid=obj.uuid, is_active=True).count()
         if count > 0:
-            url = reverse('admin:articles_article_changelist') + f'?category__id__exact={obj.id}'
+            url = reverse('admin:articles_article_changelist') + f'?category_uuid={obj.uuid}'
             return format_html('<a href="{}">{} 篇文章</a>', url, count)
         return '0 篇文章'
     
